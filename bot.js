@@ -4,7 +4,7 @@ import ti from "technicalindicators";
 import express from "express";
 
 // --- Bot Init ---
-const BOT_TOKEN = "7655482876:AAGu1F3V_pUbAwUu8wRpLjoy6lMJ2QCm4FY";
+const BOT_TOKEN = "7726468556:AAHgeT7-PuwmvLmp6zlrbwT9cCiReNkF2mQ";
 const bot = new Telegraf(BOT_TOKEN);
 const PORT = process.env.PORT || 3000;
 
