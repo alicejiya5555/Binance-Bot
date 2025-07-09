@@ -1,0 +1,29 @@
+{
+  "name": "binance-crypto-bot",
+  "version": "1.0.0",
+  "description": "Telegram bot for Binance crypto analysis with technical indicators",
+  "main": "bot.js",
+  "type": "module",
+  "scripts": {
+    "start": "node bot.js",
+    "dev": "nodemon bot.js"
+  },
+  "keywords": [
+    "telegram",
+    "bot",
+    "binance",
+    "crypto",
+    "technicalindicators"
+  ],
+  "author": "Natalia",
+  "license": "MIT",
+  "dependencies": {
+    "axios": "^1.5.0",
+    "express": "^4.18.2",
+    "telegraf": "^4.12.0",
+    "technicalindicators": "^3.0.7"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  }
+}
