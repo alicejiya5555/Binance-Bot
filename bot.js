@@ -228,211 +228,13 @@ function getUltimateOscillator(candles) {
   const uo = 100 * ((4 * avg7) + (2 * avg14) + avg28) / 7;
   return uo.toFixed(2);
 }
-
-// 📊 SuperTrend Indicator (ATR Based Trend-Follower)
-function getSuperTrend(candles, period = 10, multiplier = 3) {
-  const close = candles.map(c => c.close);
-  const high = candles.map(c => c.high);
-  const low = candles.map(c => c.low);
-
-  const atr = ti.ATR.calculate({ period, high, low, close });
-  if (atr.length === 0) return { trend: 'N/A', value: 'N/A' };
-
-  let superTrend = [];
-  let upperBand = [];
-  let lowerBand = [];
-  let trend = 'neutral';
-
-  for (let i = 0; i < close.length; i++) {
-    if (i < period) {
-      superTrend.push(0);
-      upperBand.push(0);
-      lowerBand.push(0);
-      continue;
-    }
-
-    const atrValue = atr[i - 1];
-    const hl2 = (high[i] + low[i]) / 2;
-    const currentUpper = hl2 + multiplier * atrValue;
-    const currentLower = hl2 - multiplier * atrValue;
-
-    upperBand.push(currentUpper);
-    lowerBand.push(currentLower);
-
-    if (i === period) {
-      superTrend.push(currentUpper);
-      trend = 'downtrend';
-    } else {
-      const prevClose = close[i - 1];
-      const prevSuperTrend = superTrend[i - 1];
-
-      if (prevSuperTrend === upperBand[i - 1]) {
-        if (close[i] <= currentUpper) {
-          superTrend.push(currentUpper);
-          trend = 'downtrend';
-        } else {
-          superTrend.push(currentLower);
-          trend = 'uptrend';
-        }
-      } else {
-        if (close[i] >= currentLower) {
-          superTrend.push(currentLower);
-          trend = 'uptrend';
-        } else {
-          superTrend.push(currentUpper);
-          trend = 'downtrend';
-        }
-      }
-    }
-  }
-
-  return {
-    trend,
-    value: superTrend.length ? superTrend[superTrend.length - 1].toFixed(2) : 'N/A'
-  };
-}
-
-// 📊 Traders Dynamic Index (TDI)
-function getTDI(candles, rsiPeriod = 13, volatilityBand = 34, rsiPriceLine = 2, tradeSignalLine = 7) {
-  const close = candles.map(c => c.close);
-  
-  // Calculate RSI
-  const rsi = ti.RSI.calculate({ period: rsiPeriod, values: close });
-  if (rsi.length < volatilityBand) return { tdi: 'N/A', trend: 'N/A' };
-
-  // Calculate Bollinger Bands on RSI
-  const bb = ti.BollingerBands.calculate({
-    period: volatilityBand,
-    values: rsi,
-    stdDev: rsiPriceLine
-  });
-
-  // Calculate Signal Line (MA of RSI)
-  const signalLine = ti.SMA.calculate({
-    period: tradeSignalLine,
-    values: rsi
-  });
-
-  if (!bb.length || !signalLine.length) return { tdi: 'N/A', trend: 'N/A' };
-
-  const latestBB = bb[bb.length - 1];
-  const latestRSI = rsi[rsi.length - 1];
-  const latestSignal = signalLine[signalLine.length - 1];
-
-  let trend = 'neutral';
-  if (latestRSI > latestBB.upper) trend = 'overbought';
-  else if (latestRSI < latestBB.lower) trend = 'oversold';
-  else if (latestRSI > latestSignal) trend = 'bullish';
-  else if (latestRSI < latestSignal) trend = 'bearish';
-
-  return {
-    tdi: latestRSI.toFixed(2),
-    trend,
-    upperBand: latestBB.upper.toFixed(2),
-    lowerBand: latestBB.lower.toFixed(2),
-    signalLine: latestSignal.toFixed(2)
-  };
-}
-
-// 📊 Heikin Ashi Candles
-function getHeikinAshi(candles) {
-  if (candles.length < 2) return { trend: 'N/A', candle: 'N/A' };
-
-  const haCandles = [];
-  let prevHa = null;
-
-  for (let i = 0; i < candles.length; i++) {
-    const current = candles[i];
-    
-    if (!prevHa) {
-      // First candle is same as regular candle
-      const haClose = (current.open + current.high + current.low + current.close) / 4;
-      prevHa = {
-        open: current.open,
-        high: current.high,
-        low: current.low,
-        close: haClose
-      };
-      haCandles.push(prevHa);
-      continue;
-    }
-
-    const haClose = (current.open + current.high + current.low + current.close) / 4;
-    const haOpen = (prevHa.open + prevHa.close) / 2;
-    const haHigh = Math.max(current.high, haOpen, haClose);
-    const haLow = Math.min(current.low, haOpen, haClose);
-
-    const haCandle = {
-      open: haOpen,
-      high: haHigh,
-      low: haLow,
-      close: haClose
-    };
-
-    haCandles.push(haCandle);
-    prevHa = haCandle;
-  }
-
-  const latestHa = haCandles[haCandles.length - 1];
-  let trend = 'neutral';
-  
-  if (latestHa.close > latestHa.open) {
-    trend = latestHa.close > latestHa.high * 0.95 ? 'strong uptrend' : 'uptrend';
-  } else if (latestHa.close < latestHa.open) {
-    trend = latestHa.close < latestHa.low * 1.05 ? 'strong downtrend' : 'downtrend';
-  }
-
-  return {
-    trend,
-    candle: latestHa,
-    close: latestHa.close.toFixed(2)
-  };
-}
-
-// 📊 Choppiness Index
-function getChoppinessIndex(candles, period = 14) {
-  if (candles.length < period + 1) return 'N/A';
-
-  const close = candles.map(c => c.close);
-  const high = candles.map(c => c.high);
-  const low = candles.map(c => c.low);
-
-  let sumATR = 0;
-  let maxHigh = -Infinity;
-  let minLow = Infinity;
-
-  for (let i = candles.length - period; i < candles.length; i++) {
-    sumATR += Math.max(
-      high[i] - low[i],
-      Math.abs(high[i] - close[i - 1]),
-      Math.abs(low[i] - close[i - 1])
-    );
-
-    maxHigh = Math.max(maxHigh, high[i]);
-    minLow = Math.min(minLow, low[i]);
-  }
-
-  const atrRatio = sumATR / (maxHigh - minLow);
-  const ci = 100 * Math.log10(atrRatio) / Math.log10(period);
-
-  let marketCondition = 'trending';
-  if (ci > 61.8) marketCondition = 'choppy';
-  else if (ci < 38.2) marketCondition = 'strong trend';
-
-  return {
-    value: Math.min(100, Math.max(0, ci)).toFixed(2),
-    condition: marketCondition
-  };
-}
-
 // --- Indicator Calculations ---
 function calculateIndicators(candles) {
   const close = candles.map(c => c.close);
   const high = candles.map(c => c.high);
   const low = candles.map(c => c.low);
   const volume = candles.map(c => c.volume);
-  const ichimoku = getIchimoku(candles);
-  
+const ichimoku = getIchimoku(candles);
   // Helper to safely get last value or NaN if empty
   const lastValue = (arr) => arr.length ? arr.slice(-1)[0] : NaN;
 
@@ -461,7 +263,7 @@ function calculateIndicators(candles) {
   });
   const atr = lastValue(atrRaw);
 
-  const adxData = ti.ADX.calculate({
+    const adxData = ti.ADX.calculate({
     period: 14,
     close,
     high,
@@ -484,93 +286,87 @@ function calculateIndicators(candles) {
   const stochK = stochRsi?.k;
   const stochD = stochRsi?.d;
 
-  const vwap1 = calcVWAP(candles, 1);
-  const vwap5 = calcVWAP(candles, 5);
+const vwap1 = calcVWAP(candles, 1);
+const vwap5 = calcVWAP(candles, 5);
 
-  const roc14 = lastValue(ti.ROC.calculate({
-    period: 14,
-    values: close
-  }));
+const roc14 = lastValue(ti.ROC.calculate({
+  period: 14,
+  values: close
+}));
 
-  // 📉 WILLIAMS %R (14)
-  function getWilliamsR(candles) {
-    const highs = candles.slice(-14).map(c => parseFloat(c[2]));
-    const lows = candles.slice(-14).map(c => parseFloat(c[3]));
-    const close = parseFloat(candles[candles.length - 1][4]);
+// 📉 WILLIAMS %R (14)
+function getWilliamsR(candles) {
+  const highs = candles.slice(-14).map(c => parseFloat(c[2]));
+  const lows = candles.slice(-14).map(c => parseFloat(c[3]));
+  const close = parseFloat(candles[candles.length - 1][4]);
 
-    const highestHigh = Math.max(...highs);
-    const lowestLow = Math.min(...lows);
+  const highestHigh = Math.max(...highs);
+  const lowestLow = Math.min(...lows);
 
-    const williamsR = ((highestHigh - close) / (highestHigh - lowestLow)) * -100;
-    return williamsR.toFixed(2);
+  const williamsR = ((highestHigh - close) / (highestHigh - lowestLow)) * -100;
+  return williamsR.toFixed(2);
+}
+
+// 📉 ICHIMOKU (9, 26, 52)
+function getIchimoku(candles) {
+  const high = candles.map(c => c.high);
+  const low = candles.map(c => c.low);
+
+  const period9 = 9;
+  const period26 = 26;
+  const period52 = 52;
+
+  if (candles.length < period52) {
+    return { conversionLine: 'n/a', baseLine: 'n/a', leadingSpanA: 'n/a', leadingSpanB: 'n/a' };
   }
 
-  // 📉 ICHIMOKU (9, 26, 52)
-  function getIchimoku(candles) {
-    const high = candles.map(c => c.high);
-    const low = candles.map(c => c.low);
+  const recentHigh9 = Math.max(...high.slice(-period9));
+  const recentLow9 = Math.min(...low.slice(-period9));
+  const conversionLine = ((recentHigh9 + recentLow9) / 2).toFixed(2);
 
-    const period9 = 9;
-    const period26 = 26;
-    const period52 = 52;
+  const recentHigh26 = Math.max(...high.slice(-period26));
+  const recentLow26 = Math.min(...low.slice(-period26));
+  const baseLine = ((recentHigh26 + recentLow26) / 2).toFixed(2);
 
-    if (candles.length < period52) {
-      return { conversionLine: 'n/a', baseLine: 'n/a', leadingSpanA: 'n/a', leadingSpanB: 'n/a' };
-    }
+  const leadingSpanA = (((parseFloat(conversionLine) + parseFloat(baseLine)) / 2)).toFixed(2);
 
-    const recentHigh9 = Math.max(...high.slice(-period9));
-    const recentLow9 = Math.min(...low.slice(-period9));
-    const conversionLine = ((recentHigh9 + recentLow9) / 2).toFixed(2);
+  const recentHigh52 = Math.max(...high.slice(-period52));
+  const recentLow52 = Math.min(...low.slice(-period52));
+  const leadingSpanB = ((recentHigh52 + recentLow52) / 2).toFixed(2);
 
-    const recentHigh26 = Math.max(...high.slice(-period26));
-    const recentLow26 = Math.min(...low.slice(-period26));
-    const baseLine = ((recentHigh26 + recentLow26) / 2).toFixed(2);
+  return {
+    conversionLine,
+    baseLine,
+    leadingSpanA,
+    leadingSpanB
+  };
+}
 
-    const leadingSpanA = (((parseFloat(conversionLine) + parseFloat(baseLine)) / 2)).toFixed(2);
+// 📊 KDJ indicator calculation
+const kdj = getKDJ(candles);
 
-    const recentHigh52 = Math.max(...high.slice(-period52));
-    const recentLow52 = Math.min(...low.slice(-period52));
-    const leadingSpanB = ((recentHigh52 + recentLow52) / 2).toFixed(2);
+const cci7 = lastValue(ti.CCI.calculate({
+  period: 7,
+  high,
+  low,
+  close
+}));
 
-    return {
-      conversionLine,
-      baseLine,
-      leadingSpanA,
-      leadingSpanB
-    };
-  }
+const cci10 = lastValue(ti.CCI.calculate({
+  period: 10,
+  high,
+  low,
+  close
+}));
 
-  // 📊 KDJ indicator calculation
-  const kdj = getKDJ(candles);
+const cci20 = lastValue(ti.CCI.calculate({
+  period: 20,
+  high,
+  low,
+  close
+}));
 
-  const cci7 = lastValue(ti.CCI.calculate({
-    period: 7,
-    high,
-    low,
-    close
-  }));
-
-  const cci10 = lastValue(ti.CCI.calculate({
-    period: 10,
-    high,
-    low,
-    close
-  }));
-
-  const cci20 = lastValue(ti.CCI.calculate({
-    period: 20,
-    high,
-    low,
-    close
-  }));
-
-  const adosc = getADOSC(candles);
-  
-  // New indicators calculations
-  const superTrend = getSuperTrend(candles);
-  const tdi = getTDI(candles);
-  const heikinAshi = getHeikinAshi(candles);
-  const choppinessIndex = getChoppinessIndex(candles);
+const adosc = getADOSC(candles);
   
   return {
     sma5: formatNum(lastValue(ti.SMA.calculate({ period: 5, values: close }))),
@@ -622,12 +418,13 @@ function calculateIndicators(candles) {
       period: 20
     }))),
 
-    williamsR14: formatNum(lastValue(ti.WilliamsR.calculate({
-      period: 14,
-      high: high,
-      low: low,
-      close: close
-    }))),
+
+williamsR14: formatNum(lastValue(ti.WilliamsR.calculate({
+  period: 14,
+  high: high,
+  low: low,
+  close: close
+}))),
 
     adx14: formatNum(adx),
     pdi14: formatNum(pdi),
@@ -639,45 +436,32 @@ function calculateIndicators(candles) {
     vwap1: formatNum(vwap1),
     vwap5: formatNum(vwap5),
 
-    kdjK: kdj.k,
-    kdjD: kdj.d,
-    kdjJ: kdj.j,
+// Add KDJ values here:
+  kdjK: kdj.k,
+  kdjD: kdj.d,
+  kdjJ: kdj.j,
 
-    cci7: formatNum(cci7),
-    cci10: formatNum(cci10),
-    cci20: formatNum(cci20),
+cci7: formatNum(cci7),
+cci10: formatNum(cci10),
+cci20: formatNum(cci20),
 
-    roc14: formatNum(roc14),
-    uo: getUltimateOscillator(candles),
+roc14: formatNum(roc14),
+uo: getUltimateOscillator(candles),
 
-    mtm7: getMTM(candles, 7),
-    mtm14: getMTM(candles, 14),
-    mtm20: getMTM(candles, 20),
+mtm7: getMTM(candles, 7),
+mtm14: getMTM(candles, 14),
+mtm20: getMTM(candles, 20),
 
-    keltner: getKeltnerChannel(candles),
+keltner: getKeltnerChannel(candles),
 
-    adosc: isNaN(adosc) ? "N/A" : adosc,
+// other indicators...
+  adosc: isNaN(adosc) ? "N/A" : adosc,
 
-    ichimokuConversion: ichimoku.conversionLine,
-    ichimokuBase: ichimoku.baseLine,
-    ichimokuSpanA: ichimoku.leadingSpanA,
-    ichimokuSpanB: ichimoku.leadingSpanB,
-    
-    // New indicators
-    superTrendValue: superTrend.value,
-    superTrendTrend: superTrend.trend,
-    
-    tdiValue: tdi.tdi,
-    tdiTrend: tdi.trend,
-    tdiUpperBand: tdi.upperBand,
-    tdiLowerBand: tdi.lowerBand,
-    tdiSignalLine: tdi.signalLine,
-    
-    heikinAshiClose: heikinAshi.close,
-    heikinAshiTrend: heikinAshi.trend,
-    
-    choppinessIndex: choppinessIndex.value,
-    choppinessCondition: choppinessIndex.condition
+// other indicators...
+  ichimokuConversion: ichimoku.conversionLine,
+  ichimokuBase: ichimoku.baseLine,
+  ichimokuSpanA: ichimoku.leadingSpanA,
+  ichimokuSpanB: ichimoku.leadingSpanB,
   };
 }
 
@@ -844,38 +628,6 @@ const ichimokuSection =
  - Leading Span B: ${indicators.ichimokuSpanB}
 `;
 
-// New indicators sections
-const superTrendSection =
-`📈 SuperTrend (10,3):
- - Value: ${indicators.superTrendValue}
- - Trend: ${indicators.superTrendTrend}
-
-`;
-
-const tdiSection =
-`📊 Traders Dynamic Index (TDI):
- - RSI (13): ${indicators.tdiValue}
- - Trend: ${indicators.tdiTrend}
- - Upper Band: ${indicators.tdiUpperBand}
- - Lower Band: ${indicators.tdiLowerBand}
- - Signal Line (7): ${indicators.tdiSignalLine}
-
-`;
-
-const heikinAshiSection =
-`🕯 Heikin Ashi:
- - Close: ${indicators.heikinAshiClose}
- - Trend: ${indicators.heikinAshiTrend}
-
-`;
-
-const choppinessSection =
-`🌀 Choppiness Index (14):
- - Value: ${indicators.choppinessIndex}
- - Market Condition: ${indicators.choppinessCondition}
-
-`;
-
   // Your added custom words here:
   const extraNotes =
 `
@@ -913,11 +665,7 @@ Calculate Values of all thes Indicatotors and Give me Out Put:
 
 `;
 
- return header + smaSection + emaSection + wmaSection + macdSection + rsiSection + stochRsiSection + 
-        kdjSection + williamsSection + cciSection + rocSection + mtmSection + uoSection + 
-        adxSection + bbSection + keltnerSection + atrSection + adsocsection + mfiSection + 
-        vwapSection + ichimokuSection + superTrendSection + tdiSection + heikinAshiSection + 
-        choppinessSection + extraNotes;
+ return header + smaSection + emaSection + wmaSection + macdSection + rsiSection + stochRsiSection + kdjSection + williamsSection + cciSection + rocSection + mtmSection + uoSection + adxSection + bbSection + keltnerSection + atrSection + adsocsection + mfiSection + vwapSection + ichimokuSection + extraNotes;
 }
 
 // --- Command Handler ---
