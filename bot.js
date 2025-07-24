@@ -662,7 +662,6 @@ Calculate Values of all thes Indicatotors and Give me Out Put:
 📢 Offer final trading advice — Mindset, Psychology, and Position Sizing
 🔁 Is this setup a reversal or continuation opportunity? How clear is the signal?
 );
-
 `;
 
  return header + smaSection + emaSection + wmaSection + macdSection + rsiSection + stochRsiSection + kdjSection + williamsSection + cciSection + rocSection + mtmSection + uoSection + adxSection + bbSection + keltnerSection + atrSection + adsocsection + mfiSection + vwapSection + ichimokuSection + extraNotes;
