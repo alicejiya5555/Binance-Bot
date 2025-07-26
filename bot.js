@@ -927,9 +927,11 @@ Calculate Values of all thes Indicatotors and Give me Out Put:
 🧪 Compare current indicators with historically successful setups
 ⚠️ Scan for breakout or volatility pressure — Are we in a compression or expansion zone?
 🔄 After a breakout, is a retest likely? Should we wait for confirmation?
-🔄 Determine whether a reversal or continuation pattern is forming
+🔄 Is this a reversal or continuation setup? What confirms it?
+📉 Is price forming higher highs/lows or breaking structure?
 🌀 Are there any repeating fractal patterns from past cycles?
 🐾 Is this setup potentially a bull trap or bear trap?
+🐾 Are traders overly long/short? Any squeeze setups forming?
 🧮 Identify key Fibonacci levels — Is the current price near a retracement or extension zone?
 🧭 Is the price nearing any known liquidity pool zones?
 🛡 Highlight ideal zones for entry, take profit, and stop-loss
@@ -940,7 +942,6 @@ Calculate Values of all thes Indicatotors and Give me Out Put:
 📅 Offer a 3-day or weekly forecast — What’s the expected asset behavior?
 📰 Is there any upcoming news or event that could impact the market or this asset?
 📢 Offer final trading advice — Mindset, Psychology, and Position Sizing
-🔁 Is this setup a reversal or continuation opportunity? How clear is the signal?
 `;
 
  return header + smaSection + emaSection + wmaSection + macdSection + rsiSection + stochRsiSection + 
