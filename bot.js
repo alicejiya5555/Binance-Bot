@@ -11,7 +11,7 @@ const PORT = process.env.PORT || 3000;
 // --- Utility Functions ---
 function parseCommand(command) {
   const cmd = command.toLowerCase();
-  const match = cmd.match(/^\/(\w+)(15m|1h|4h|6h|12h)$/);
+  const match = cmd.match(/^\/(\w+)(15m|30m|1h|4h|6h|12h)$/);
   if (!match) return null;
 
   const [, symbolRaw, interval] = match;
