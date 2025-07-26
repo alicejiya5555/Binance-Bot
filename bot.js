@@ -921,16 +921,14 @@ Calculate Values of all thes Indicatotors and Give me Out Put:
 📍 Final Signal Summary
 📉 What is the overall trend direction? (Bullish, Bearish, or Sideways, positive,Negative, Neutral)
 📊 Provide a detailed breakdown of indicator behaviors — RSI, MACD, EMA, Volume, etc.
-📈 Are EMAs aligned in a bullish or bearish structure?
 🌡 Present a momentum heatmap — Is momentum rising or fading?
 📉 Analyze volume and OBV strength — Do they support the price movement?
 🧪 Compare current indicators with historically successful setups
-⚠️ Scan for breakout or volatility pressure — Are we in a compression or expansion zone?
-🔄 After a breakout, is a retest likely? Should we wait for confirmation?
+🔄 Is it any breakout? Or Should we wait for confirmation?
 🔄 Is this a reversal or continuation setup? What confirms it?
 📉 Is price forming higher highs/lows or breaking structure?
 🌀 Are there any repeating fractal patterns from past cycles?
-🐾 Is this setup potentially a bull trap or bear trap?
+🐾 Over all Is this setup potentially a bull trap or bear trap?
 🐾 Are traders overly long/short? Any squeeze setups forming?
 🧮 Identify key Fibonacci levels — Is the current price near a retracement or extension zone?
 🧭 Is the price nearing any known liquidity pool zones?
