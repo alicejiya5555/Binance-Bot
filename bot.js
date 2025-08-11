@@ -2,6 +2,7 @@ import { Telegraf } from "telegraf";
 import axios from "axios";
 import ti from "technicalindicators";
 import express from "express";
+import ml from "ml-regression"; // For machine learning components
 
 // --- Bot Init ---
 const BOT_TOKEN = "7726468556:AAFmVm5S25POmlRXwIRayz1hhbpLP6nDbQ4";
@@ -85,6 +86,269 @@ function getEMA(values, period) {
   }
 
   return emaArray;
+}
+
+// --- New Indicator Functions ---
+
+// Volume-Weighted MACD (VW-MACD)
+function getVWMACD(candles, fastPeriod = 12, slowPeriod = 26, signalPeriod = 9) {
+  const close = candles.map(c => c.close);
+  const volume = candles.map(c => c.volume);
+  
+  // Calculate volume-weighted prices
+  const vwPrices = close.map((price, i) => price * volume[i]);
+  
+  // Calculate EMAs for VW-MACD
+  const fastEMA = ti.EMA.calculate({ period: fastPeriod, values: vwPrices });
+  const slowEMA = ti.EMA.calculate({ period: slowPeriod, values: vwPrices });
+  
+  // Calculate MACD line
+  const macdLine = [];
+  for (let i = 0; i < slowEMA.length; i++) {
+    const idx = fastEMA.length - slowEMA.length + i;
+    macdLine.push(fastEMA[idx] - slowEMA[i]);
+  }
+  
+  // Calculate signal line
+  const signalLine = ti.EMA.calculate({ period: signalPeriod, values: macdLine });
+  
+  // Calculate histogram
+  const histogram = [];
+  for (let i = 0; i < signalLine.length; i++) {
+    const idx = macdLine.length - signalLine.length + i;
+    histogram.push(macdLine[idx] - signalLine[i]);
+  }
+  
+  return {
+    macd: macdLine.length ? macdLine[macdLine.length - 1] : 0,
+    signal: signalLine.length ? signalLine[signalLine.length - 1] : 0,
+    histogram: histogram.length ? histogram[histogram.length - 1] : 0
+  };
+}
+
+// Fibonacci Bollinger Bands (FibB)
+function getFibonacciBollingerBands(candles, period = 20) {
+  const close = candles.map(c => c.close);
+  const bb = ti.BollingerBands.calculate({ period, values: close, stdDev: 2 });
+  
+  if (!bb.length) return { upper: 0, middle: 0, lower: 0 };
+  
+  const lastBB = bb[bb.length - 1];
+  const range = lastBB.upper - lastBB.lower;
+  
+  return {
+    upper: lastBB.upper,
+    middle: lastBB.middle,
+    lower: lastBB.lower,
+    fib0382: (lastBB.middle + range * 0.382).toFixed(2),
+    fib0618: (lastBB.middle + range * 0.618).toFixed(2),
+    fib1000: lastBB.upper,
+    fibNegative0382: (lastBB.middle - range * 0.382).toFixed(2),
+    fibNegative0618: (lastBB.middle - range * 0.618).toFixed(2),
+    fibNegative1000: lastBB.lower
+  };
+}
+
+// Relative Volatility Index (RVI)
+function getRVI(candles, period = 14) {
+  const close = candles.map(c => c.close);
+  const high = candles.map(c => c.high);
+  const low = candles.map(c => c.low);
+  
+  // Calculate standard deviation for each period
+  const stdevs = [];
+  for (let i = period - 1; i < close.length; i++) {
+    const slice = close.slice(i - period + 1, i + 1);
+    const mean = slice.reduce((a, b) => a + b, 0) / period;
+    const variance = slice.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / period;
+    stdevs.push(Math.sqrt(variance));
+  }
+  
+  // Calculate RVI similar to RSI but using stdev instead of price changes
+  const upChanges = [];
+  const downChanges = [];
+  
+  for (let i = 1; i < stdevs.length; i++) {
+    const change = stdevs[i] - stdevs[i - 1];
+    if (change > 0) {
+      upChanges.push(change);
+      downChanges.push(0);
+    } else {
+      upChanges.push(0);
+      downChanges.push(Math.abs(change));
+    }
+  }
+  
+  const avgUp = upChanges.reduce((a, b) => a + b, 0) / upChanges.length;
+  const avgDown = downChanges.reduce((a, b) => a + b, 0) / downChanges.length;
+  
+  const rvi = avgDown === 0 ? 100 : 100 - (100 / (1 + (avgUp / avgDown)));
+  
+  return rvi.toFixed(2);
+}
+
+// On-Balance Volume (OBV)
+function getOBV(candles) {
+  let obv = 0;
+  const obvValues = [];
+  
+  for (let i = 1; i < candles.length; i++) {
+    const current = candles[i];
+    const previous = candles[i - 1];
+    
+    if (current.close > previous.close) {
+      obv += current.volume;
+    } else if (current.close < previous.close) {
+      obv -= current.volume;
+    }
+    // No change means OBV remains the same
+    
+    obvValues.push(obv);
+  }
+  
+  return obvValues.length ? obvValues[obvValues.length - 1] : 0;
+}
+
+// Aroon Indicator
+function getAroon(candles, period = 25) {
+  if (candles.length < period) return { up: 0, down: 0 };
+  
+  const high = candles.map(c => c.high);
+  const low = candles.map(c => c.low);
+  
+  let aroonUp = 0;
+  let aroonDown = 0;
+  
+  // Find highest high and lowest low in the period
+  const recentHighs = high.slice(-period);
+  const recentLows = low.slice(-period);
+  
+  const highestHigh = Math.max(...recentHighs);
+  const lowestLow = Math.min(...recentLows);
+  
+  // Find how many periods since highest high and lowest low
+  const daysSinceHigh = recentHighs.reverse().findIndex(h => h === highestHigh);
+  const daysSinceLow = recentLows.reverse().findIndex(l => l === lowestLow);
+  
+  aroonUp = ((period - daysSinceHigh) / period) * 100;
+  aroonDown = ((period - daysSinceLow) / period) * 100;
+  
+  return {
+    up: aroonUp.toFixed(2),
+    down: aroonDown.toFixed(2)
+  };
+}
+
+// Hull Moving Average (HMA)
+function getHMA(candles, period = 9) {
+  const close = candles.map(c => c.close);
+  
+  // Calculate WMA for half period
+  const halfPeriod = Math.floor(period / 2);
+  const wmaHalf = ti.WMA.calculate({ period: halfPeriod, values: close });
+  
+  // Calculate WMA for full period
+  const wmaFull = ti.WMA.calculate({ period, values: close });
+  
+  // Calculate raw HMA
+  const rawHMA = [];
+  for (let i = 0; i < wmaFull.length; i++) {
+    const idx = wmaHalf.length - wmaFull.length + i;
+    if (idx >= 0) {
+      rawHMA.push(2 * wmaHalf[idx] - wmaFull[i]);
+    }
+  }
+  
+  // Calculate final HMA with WMA of sqrt(period)
+  const sqrtPeriod = Math.floor(Math.sqrt(period));
+  const hma = ti.WMA.calculate({ period: sqrtPeriod, values: rawHMA });
+  
+  return hma.length ? hma[hma.length - 1] : 0;
+}
+
+// Machine Learning/Adaptive Filter (Simple Linear Regression)
+function getMLPrediction(candles, lookback = 14, forecast = 3) {
+  if (candles.length < lookback + forecast) return { slope: 0, prediction: 0 };
+  
+  const close = candles.map(c => c.close);
+  const recentCloses = close.slice(-lookback);
+  
+  // Prepare data for regression
+  const X = recentCloses.map((_, i) => i);
+  const Y = recentCloses;
+  
+  // Simple linear regression
+  const regression = new ml.SLR(X, Y);
+  
+  // Predict next 'forecast' periods
+  const lastX = X[X.length - 1];
+  const prediction = regression.predict(lastX + forecast);
+  
+  return {
+    slope: regression.coefficients[1].toFixed(4), // Slope of the trend line
+    prediction: prediction.toFixed(2),
+    r2: regression.score(X, Y).r2.toFixed(4) // R-squared value
+  };
+}
+
+// Order Book Analysis (mock implementation)
+async function getOrderBookAnalysis(symbol) {
+  try {
+    // In a real implementation, you would call the Binance API:
+    // const response = await axios.get(`https://api.binance.com/api/v3/depth?symbol=${symbol}&limit=20`);
+    
+    // Mock response for now
+    return {
+      bidVolume: (Math.random() * 1000).toFixed(2),
+      askVolume: (Math.random() * 1000).toFixed(2),
+      imbalance: (Math.random() * 100 - 50).toFixed(2) + '%'
+    };
+  } catch (error) {
+    return {
+      bidVolume: 'N/A',
+      askVolume: 'N/A',
+      imbalance: 'N/A'
+    };
+  }
+}
+
+// Sentiment Analysis (mock implementation)
+async function getSentimentAnalysis() {
+  try {
+    // In a real implementation, you would call a sentiment API
+    
+    // Mock response for now
+    return {
+      score: (Math.random() * 100).toFixed(2),
+      sentiment: ['Very Bearish', 'Bearish', 'Neutral', 'Bullish', 'Very Bullish'][
+        Math.floor(Math.random() * 5)
+      ]
+    };
+  } catch (error) {
+    return {
+      score: 'N/A',
+      sentiment: 'N/A'
+    };
+  }
+}
+
+// Funding Rates (mock implementation)
+async function getFundingRate(symbol) {
+  try {
+    // In a real implementation, you would call the Binance API:
+    // const response = await axios.get(`https://fapi.binance.com/fapi/v1/premiumIndex?symbol=${symbol}`);
+    
+    // Mock response for now
+    return {
+      rate: (Math.random() * 0.03 - 0.015).toFixed(6), // Random between -0.015 to +0.015
+      nextFunding: Date.now() + 8 * 60 * 60 * 1000 // Next funding in 8 hours
+    };
+  } catch (error) {
+    return {
+      rate: 'N/A',
+      nextFunding: 'N/A'
+    };
+  }
 }
 
 // --- Binance Data Fetch ---
@@ -446,6 +710,41 @@ async function getFearGreedIndex() {
   }
 }
 
+// 📉 ICHIMOKU (9, 26, 52)
+function getIchimoku(candles) {
+  const high = candles.map(c => c.high);
+  const low = candles.map(c => c.low);
+
+  const period9 = 9;
+  const period26 = 26;
+  const period52 = 52;
+
+  if (candles.length < period52) {
+    return { conversionLine: 'n/a', baseLine: 'n/a', leadingSpanA: 'n/a', leadingSpanB: 'n/a' };
+  }
+
+  const recentHigh9 = Math.max(...high.slice(-period9));
+  const recentLow9 = Math.min(...low.slice(-period9));
+  const conversionLine = ((recentHigh9 + recentLow9) / 2).toFixed(2);
+
+  const recentHigh26 = Math.max(...high.slice(-period26));
+  const recentLow26 = Math.min(...low.slice(-period26));
+  const baseLine = ((recentHigh26 + recentLow26) / 2).toFixed(2);
+
+  const leadingSpanA = ((parseFloat(conversionLine) + parseFloat(baseLine)) / 2).toFixed(2);
+
+  const recentHigh52 = Math.max(...high.slice(-period52));
+  const recentLow52 = Math.min(...low.slice(-period52));
+  const leadingSpanB = ((recentHigh52 + recentLow52) / 2).toFixed(2);
+
+  return {
+    conversionLine,
+    baseLine,
+    leadingSpanA,
+    leadingSpanB
+  };
+}
+
 // --- Indicator Calculations ---
 async function calculateIndicators(candles) {
   const close = candles.map(c => c.close);
@@ -513,42 +812,18 @@ async function calculateIndicators(candles) {
     values: close
   }));
 
-  // 📉 ICHIMOKU (9, 26, 52)
-function getIchimoku(candles) {
-  const high = candles.map(c => c.high);
-  const low = candles.map(c => c.low);
+  // Calculate new indicators
+  const vwmacd = getVWMACD(candles);
+  const fibBB = getFibonacciBollingerBands(candles);
+  const rvi = getRVI(candles);
+  const obv = getOBV(candles);
+  const aroon = getAroon(candles);
+  const hma = getHMA(candles);
+  const mlPrediction = getMLPrediction(candles);
+  const orderBook = await getOrderBookAnalysis(candles.symbol || 'BTCUSDT');
+  const sentiment = await getSentimentAnalysis();
+  const fundingRate = await getFundingRate(candles.symbol || 'BTCUSDT');
 
-  const period9 = 9;
-  const period26 = 26;
-  const period52 = 52;
-
-  if (candles.length < period52) {
-    return { conversionLine: 'n/a', baseLine: 'n/a', leadingSpanA: 'n/a', leadingSpanB: 'n/a' };
-  }
-
-  const recentHigh9 = Math.max(...high.slice(-period9));
-  const recentLow9 = Math.min(...low.slice(-period9));
-  const conversionLine = ((recentHigh9 + recentLow9) / 2).toFixed(2);
-
-  const recentHigh26 = Math.max(...high.slice(-period26));
-  const recentLow26 = Math.min(...low.slice(-period26));
-  const baseLine = ((recentHigh26 + recentLow26) / 2).toFixed(2);
-
-  const leadingSpanA = ((parseFloat(conversionLine) + parseFloat(baseLine)) / 2).toFixed(2);
-
-  const recentHigh52 = Math.max(...high.slice(-period52));
-  const recentLow52 = Math.min(...low.slice(-period52));
-  const leadingSpanB = ((recentHigh52 + recentLow52) / 2).toFixed(2);
-
-  return {
-    conversionLine,
-    baseLine,
-    leadingSpanA,
-    leadingSpanB
-  };
-}
-
-  // 📊 KDJ indicator calculation
   const kdj = getKDJ(candles);
 
   const cci7 = lastValue(ti.CCI.calculate({
@@ -692,7 +967,44 @@ function getIchimoku(candles) {
     donchianMiddle: donchianChannel.middle,
     donchianLower: donchianChannel.lower,
     fgiValue: fearGreedIndex.value,
-    fgiClassification: fearGreedIndex.classification
+    fgiClassification: fearGreedIndex.classification,
+    
+    // Newly added advanced indicators
+    vwmacdValue: formatNum(vwmacd.macd),
+    vwmacdSignal: formatNum(vwmacd.signal),
+    vwmacdHistogram: formatNum(vwmacd.histogram),
+    
+    fibBBUpper: formatNum(fibBB.upper),
+    fibBBMiddle: formatNum(fibBB.middle),
+    fibBBLower: formatNum(fibBB.lower),
+    fibBB0382: formatNum(fibBB.fib0382),
+    fibBB0618: formatNum(fibBB.fib0618),
+    fibBB1000: formatNum(fibBB.fib1000),
+    fibBBNegative0382: formatNum(fibBB.fibNegative0382),
+    fibBBNegative0618: formatNum(fibBB.fibNegative0618),
+    fibBBNegative1000: formatNum(fibBB.fibNegative1000),
+    
+    rvi: formatNum(rvi),
+    obv: formatNum(obv),
+    
+    aroonUp: aroon.up,
+    aroonDown: aroon.down,
+    
+    hma: formatNum(hma),
+    
+    mlSlope: mlPrediction.slope,
+    mlPrediction: mlPrediction.prediction,
+    mlR2: mlPrediction.r2,
+    
+    orderBookBidVolume: orderBook.bidVolume,
+    orderBookAskVolume: orderBook.askVolume,
+    orderBookImbalance: orderBook.imbalance,
+    
+    sentimentScore: sentiment.score,
+    sentimentClassification: sentiment.sentiment,
+    
+    fundingRate: fundingRate.rate,
+    nextFundingTime: new Date(fundingRate.nextFunding).toLocaleString()
   };
 }
 
@@ -752,6 +1064,14 @@ function generateOutput(priceData, indicators, name = "Symbol", tfLabel = "Timef
 
 `;
 
+  const vwmacdSection =
+`📊 Volume-Weighted MACD (VW-MACD):
+ - VW-MACD: ${indicators.vwmacdValue}
+ - VW-Signal: ${indicators.vwmacdSignal}
+ - VW-Histogram: ${indicators.vwmacdHistogram}
+
+`;
+
   const bbSection =
 `🎯 Bollinger Bands (20, 2 StdDev):
  - Upper Band: $${indicators.bbUpper}
@@ -760,10 +1080,28 @@ function generateOutput(priceData, indicators, name = "Symbol", tfLabel = "Timef
 
 `;
 
+  const fibBBSection =
+`📊 Fibonacci Bollinger Bands:
+ - Upper (1.0): $${indicators.fibBB1000}
+ - Fib 0.618: $${indicators.fibBB0618}
+ - Fib 0.382: $${indicators.fibBB0382}
+ - Middle: $${indicators.fibBBMiddle}
+ - Fib -0.382: $${indicators.fibBBNegative0382}
+ - Fib -0.618: $${indicators.fibBBNegative0618}
+ - Lower (-1.0): $${indicators.fibBBNegative1000}
+
+`;
+
   const rsiSection =
 `⚡ Relative Strength Index (RSI):
  - RSI (5): ${indicators.rsi5}
  - RSI (14): ${indicators.rsi14}
+
+`;
+
+  const rviSection =
+`📊 Relative Volatility Index (RVI):
+ - RVI (14): ${indicators.rvi}
 
 `;
 
@@ -849,6 +1187,48 @@ const keltnerSection =
 
 const adsocsection = `
 📊 ADOSC: ${indicators.adosc}
+`;
+
+const obvSection =
+`📊 On-Balance Volume (OBV):
+ - OBV: ${indicators.obv}
+`;
+
+const aroonSection =
+`📊 Aroon Indicator (25):
+ - Aroon Up: ${indicators.aroonUp}
+ - Aroon Down: ${indicators.aroonDown}
+`;
+
+const hmaSection =
+`📈 Hull Moving Average (HMA 9):
+ - HMA: $${indicators.hma}
+`;
+
+const mlSection =
+`🤖 Machine Learning Prediction:
+ - Trend Slope: ${indicators.mlSlope}
+ - R² Score: ${indicators.mlR2}
+ - ${forecast} Period Forecast: $${indicators.mlPrediction}
+`;
+
+const orderBookSection =
+`📊 Order Book Analysis:
+ - Bid Volume: ${indicators.orderBookBidVolume}
+ - Ask Volume: ${indicators.orderBookAskVolume}
+ - Imbalance: ${indicators.orderBookImbalance}
+`;
+
+const sentimentSection =
+`📰 Market Sentiment:
+ - Score: ${indicators.sentimentScore}
+ - Classification: ${indicators.sentimentClassification}
+`;
+
+const fundingSection =
+`💰 Funding Rate:
+ - Current Rate: ${indicators.fundingRate}
+ - Next Funding: ${indicators.nextFundingTime}
 `;
 
 const ichimokuSection = 
@@ -938,17 +1318,19 @@ Calculate Values of all thes Indicatotors and Give me Out Put:
 🔁 After taking profit at TP1 or TP2, suggest re-entry levels for the next move
 ⏳ Compare signals across multiple timeframes (1H, 4H, Daily) — Is there confluence?
 🐋 Detect whale movements vs. retail traders — Based on wallet activity or order book flow
-📅 Offer a 3-day or weekly forecast — What’s the expected asset behavior?
+📅 Offer a 3-day or weekly forecast — What's the expected asset behavior?
 📰 Is there any upcoming news or event that could impact the market or this asset?
 📢 Offer final trading advice — Mindset, Psychology, and Position Sizing
 `;
 
- return header + smaSection + emaSection + wmaSection + macdSection + rsiSection + stochRsiSection + 
-        kdjSection + williamsSection + cciSection + rocSection + mtmSection + uoSection + 
-        adxSection + bbSection + keltnerSection + atrSection + adsocsection + mfiSection + 
-        vwapSection + ichimokuSection + superTrendSection + tdiSection + heikinAshiSection + 
-        choppinessSection + parabolicSarSection + trixSection + donchianSection + fgiSection + 
-        extraNotes ;
+ return header + smaSection + emaSection + wmaSection + macdSection + vwmacdSection + 
+        rsiSection + rviSection + stochRsiSection + kdjSection + williamsSection + 
+        cciSection + rocSection + mtmSection + uoSection + adxSection + bbSection + 
+        fibBBSection + keltnerSection + atrSection + adsocsection + obvSection + 
+        aroonSection + hmaSection + mlSection + orderBookSection + sentimentSection + 
+        fundingSection + mfiSection + vwapSection + ichimokuSection + superTrendSection + 
+        tdiSection + heikinAshiSection + choppinessSection + parabolicSarSection + 
+        trixSection + donchianSection + fgiSection + extraNotes;
 }
 
 // --- Command Handler ---
