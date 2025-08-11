@@ -1160,7 +1160,7 @@ const fgiSection =
   // Split extra notes into two parts
   const extraNotes =
 `
-Calculate Values of all these Indicators and Give me Output:
+Calculate Values of all thes Indicatotors and Give me Out Put:
 📍 Final Signal Summary
 📉 What is the overall trend direction? (Bullish, Bearish, or Sideways, positive,Negative, Neutral)
 📊 Provide a detailed breakdown of indicator behaviors — RSI, MACD, EMA, Volume, etc.
@@ -1181,7 +1181,7 @@ Calculate Values of all these Indicators and Give me Output:
 🔁 After taking profit at TP1 or TP2, suggest re-entry levels for the next move
 ⏳ Compare signals across multiple timeframes (1H, 4H, Daily) — Is there confluence?
 🐋 Detect whale movements vs. retail traders — Based on wallet activity or order book flow
-📅 Offer a 3-day or weekly forecast — What's the expected asset behavior?
+📅 Offer a 3-day or weekly forecast — What’s the expected asset behavior?
 📰 Is there any upcoming news or event that could impact the market or this asset?
 📢 Offer final trading advice — Mindset, Psychology, and Position Sizing
 `;
@@ -1224,3 +1224,4 @@ app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
   bot.launch();
 });
+
