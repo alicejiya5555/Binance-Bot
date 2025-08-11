@@ -900,12 +900,11 @@ async function calculateIndicators(candles) {
 // --- Output Message Generator ---
 function generateOutput(priceData, indicators, name = "Symbol", tfLabel = "Timeframe") {
   const header = 
-`📊 ${name} ${tfLabel} Analysis
-
+`📜 Market Snapshot
 💰 Price: $${formatNum(priceData.lastPrice)}
 📈 24h High: $${formatNum(priceData.highPrice)}
 📉 24h Low: $${formatNum(priceData.lowPrice)}
-🔁 Change: $${formatNum(priceData.priceChange)} (${priceData.priceChangePercent}%)
+🔁 24h Change: $${formatNum(priceData.priceChange)} (${priceData.priceChangePercent}%)
 🧮 Volume: ${formatNum(priceData.volume)}
 💵 Quote Volume: $${formatNum(priceData.quoteVolume)}
 🔓 Open Price: $${formatNum(priceData.openPrice)}
@@ -913,274 +912,134 @@ function generateOutput(priceData, indicators, name = "Symbol", tfLabel = "Timef
 
 `;
 
-  const smaSection = 
-`📊 Simple Moving Averages (SMA):
- - SMA 5: $${indicators.sma5}
- - SMA 13: $${indicators.sma13}
- - SMA 21: $${indicators.sma21}
- - SMA 50: $${indicators.sma50}
- - SMA 100: $${indicators.sma100}
- - SMA 200: $${indicators.sma200}
+  const movingAverages = 
+`📊 Moving Averages
+SMA: ${indicators.sma5} | ${indicators.sma13} | ${indicators.sma21} | ${indicators.sma50} | ${indicators.sma100} | ${indicators.sma200}
+EMA: ${indicators.ema5} | ${indicators.ema13} | ${indicators.ema21} | ${indicators.ema50} | ${indicators.ema100} | ${indicators.ema200}
+WMA: ${indicators.wma5} | ${indicators.wma13} | ${indicators.wma21} | ${indicators.wma50} | ${indicators.wma100}
+HMA: ${indicators.hma}
 
 `;
 
-  const emaSection =
-`📈 Exponential Moving Averages (EMA):
- - EMA 5: $${indicators.ema5}
- - EMA 13: $${indicators.ema13}
- - EMA 21: $${indicators.ema21}
- - EMA 50: $${indicators.ema50}
- - EMA 100: $${indicators.ema100}
- - EMA 200: $${indicators.ema200}
+  const trendIndicators = 
+`📉 Trend Indicators
+ADX (14): ${indicators.adx14} | +DI ${indicators.pdi14} / -DI ${indicators.mdi14}
+
+Ichimoku: ${indicators.ichimokuConversion} | ${indicators.ichimokuBase} | ${indicators.ichimokuSpanA} | ${indicators.ichimokuSpanB}
+
+SuperTrend (10,3): ${indicators.superTrend}
+
+Parabolic SAR: ${indicators.parabolicSAR}
 
 `;
 
-  const wmaSection =
-`⚖️ Weighted Moving Averages (WMA):
- - WMA 5: $${indicators.wma5}
- - WMA 13: $${indicators.wma13}
- - WMA 21: $${indicators.wma21}
- - WMA 50: $${indicators.wma50}
- - WMA 100: $${indicators.wma100}
+  const momentumIndicators = 
+`⚡ Momentum Indicators
+MACD (3,10,16): ${indicators.macdValue} | ${indicators.macdSignal} | ${indicators.macdHistogram}
+
+VW-MACD: ${indicators.vwmacdValue} | ${indicators.vwmacdSignal} | ${indicators.vwmacdHistogram}
+
+RSI (5 / 14): ${indicators.rsi5} / ${indicators.rsi14}
+
+Stochastic RSI (14,14,3,3): ${indicators.stochRsiK} | ${indicators.stochRsiD}
+
+KDJ (9,3,3): ${indicators.kdjK} | ${indicators.kdjD} | ${indicators.kdjJ}
+
+Williams %R (14): ${indicators.williamsR14}
+
+CCI (7 / 10 / 20): ${indicators.cci7} / ${indicators.cci10} / ${indicators.cci20}
+
+ROC (14): ${indicators.roc14}
+
+MTM (7 / 14 / 20): ${indicators.mtm7} / ${indicators.mtm14} / ${indicators.mtm20}
+
+UO (7,14,28): ${indicators.uo}
+
+TDI: ${indicators.tdi} | ${indicators.tdiUpperBand} | ${indicators.tdiLowerBand} | ${indicators.tdiSignalLine}
 
 `;
 
-  const macdSection =
-`📉 MACD: 3,10,16
- - MACD: ${indicators.macdValue}
- - Signal: ${indicators.macdSignal}
- - Histogram: ${indicators.macdHistogram}
+  const volumeIndicators = 
+`📊 Volume Indicators
+OBV: ${indicators.obv}
+
+ADOSC: ${indicators.adosc}
+
+MFI (14 / 20): ${indicators.mfi14} / ${indicators.mfi20}
+
+VWAP (1 / 5): ${indicators.vwap1} / ${indicators.vwap5}
 
 `;
 
-  const vwmacdSection =
-`📊 Volume-Weighted MACD (VW-MACD):
- - VW-MACD: ${indicators.vwmacdValue}
- - VW-Signal: ${indicators.vwmacdSignal}
- - VW-Histogram: ${indicators.vwmacdHistogram}
+  const volatilityIndicators = 
+`📏 Volatility Indicators
+ATR (14): ${indicators.atr14}
+
+Bollinger (20, 2): ${indicators.bbUpper} | ${indicators.bbMiddle} | ${indicators.bbLower}
+
+Fibonacci Bollinger: ${indicators.fibBB1000} | ${indicators.fibBB0618} | ${indicators.fibBB0382} | ${indicators.fibBBNegative0382} | ${indicators.fibBBNegative0618} | ${indicators.fibBBNegative1000}
+
+Keltner (20 EMA, 2 ATR): ${indicators.keltner.upper} | ${indicators.keltner.middle} | ${indicators.keltner.lower}
+
+Choppiness Index (14): ${indicators.choppinessIndex}
 
 `;
 
-  const bbSection =
-`🎯 Bollinger Bands (20, 2 StdDev):
- - Upper Band: $${indicators.bbUpper}
- - Middle Band: $${indicators.bbMiddle}
- - Lower Band: $${indicators.bbLower}
+  const candlePatterns = 
+`🕯 Candle Patterns
+Heikin Ashi Close: ${indicators.heikinAshi}
+
+Current Candle Type: (Bullish Engulfing / Bearish Engulfing / Doji / Hammer etc.)
 
 `;
 
-  const fibBBSection =
-`📊 Fibonacci Bollinger Bands:
- - Upper (1.0): $${indicators.fibBB1000}
- - Fib 0.618: $${indicators.fibBB0618}
- - Fib 0.382: $${indicators.fibBB0382}
- - Middle: $${indicators.fibBBMiddle}
- - Fib -0.382: $${indicators.fibBBNegative0382}
- - Fib -0.618: $${indicators.fibBBNegative0618}
- - Lower (-1.0): $${indicators.fibBBNegative1000}
+  const sentiment = 
+`😨😊 Sentiment
+Fear & Greed Index: ${indicators.fgiValue} | ${indicators.fgiClassification}
 
 `;
 
-  const rsiSection =
-`⚡ Relative Strength Index (RSI):
- - RSI (5): ${indicators.rsi5}
- - RSI (14): ${indicators.rsi14}
+  const marketCondition = 
+`🧭 Market Condition (AI Summary)
+Trend State: (Bullish / Bearish / Sideways)
+
+Volatility Level: (High / Medium / Low)
+
+Volume Strength: (Strong / Weak)
 
 `;
 
-  const rviSection =
-`📊 Relative Volatility Index (RVI):
- - RVI (14): ${indicators.rvi}
+  const priceLevels = 
+`📐 Price Levels
+Support Zones:
+
+Resistance Zones:
+
+Fibonacci Levels:
+
+Pivot Points:
 
 `;
 
-  const atrSection = 
-`📏 Average True Range (ATR):
- - ATR (14): ${indicators.atr14}
+  const tradingForecast = 
+`🎯 AI Trading Forecast
+Bias: Long / Short / Neutral
+
+Entry Confidence: %
+
+Probability to Hit TP: %
+
+Risk Level: Low / Medium / High
+
+Suggested TP/SL: TP1 / TP2 / SL
+
+Expected Move: % Price Change Forecast
 
 `;
 
-  const adxSection =
-`📊 ADX (Trend Strength):
- - ADX (14): ${indicators.adx14}
- - +DI (14): ${indicators.pdi14}
- - -DI (14): ${indicators.mdi14}
-
-`;
-
-  const stochRsiSection =
-`📉 Stochastic RSI (14,14,3,3):
- - %K: ${indicators.stochRsiK}
- - %D: ${indicators.stochRsiD}
-
-`;
-
-  const vwapSection =
-`🔹 VWAP:
- - VWAP(1): ${indicators.vwap1}
- - VWAP(5): ${indicators.vwap5}
-
-`;
-
-  const mfiSection = 
-`💧 Money Flow Index (MFI):
- - MFI (14): ${indicators.mfi14}
- - MFI (20): ${indicators.mfi20}
-`;
-
-const williamsSection =
-`📉 Williams %R Indicator:
- - Williams %R (14): ${indicators.williamsR14}%
-`;
-
-const kdjSection =
-`📊 KDJ (9,3,3):
- - K: ${indicators.kdjK}
- - D: ${indicators.kdjD}
- - J: ${indicators.kdjJ}
-
-`;
-
-const cciSection =
-`📘 Commodity Channel Index (CCI):
- - CCI (7): ${indicators.cci7}
- - CCI (10): ${indicators.cci10}
- - CCI (20): ${indicators.cci20}
-
-`;
-
-const rocSection =
-`📊 Rate of Change (ROC):
- - ROC (14): ${indicators.roc14}%
-
-`;
-
-const uoSection =
-`🧭 Ultimate Oscillator:
- - UO (7,14,28): ${indicators.uo}
-`;
-
-const mtmSection =
-`📈 Momentum (MTM):
- - MTM (7): ${indicators.mtm7}
- - MTM (14): ${indicators.mtm14}
- - MTM (20): ${indicators.mtm20}
-`;
-
-const keltnerSection =
-`📐 Keltner Channel (20 EMA, 2 ATR):
- - Upper Band: ${indicators.keltner.upper}
- - Middle EMA: ${indicators.keltner.middle}
- - Lower Band: ${indicators.keltner.lower}
-`;
-
-const adsocsection = `
-📊 ADOSC: ${indicators.adosc}
-`;
-
-const obvSection =
-`📊 On-Balance Volume (OBV):
- - OBV: ${indicators.obv}
-`;
-
-const aroonSection =
-`📊 Aroon Indicator (25):
- - Aroon Up: ${indicators.aroonUp}
- - Aroon Down: ${indicators.aroonDown}
-`;
-
-const hmaSection =
-`📈 Hull Moving Average (HMA 9):
- - HMA: $${indicators.hma}
-`;
-
-const ichimokuSection = 
-`📊 Ichimoku Cloud:
- - Conversion Line (9): ${indicators.ichimokuConversion}
- - Base Line (26): ${indicators.ichimokuBase}
- - Leading Span A: ${indicators.ichimokuSpanA}
- - Leading Span B: ${indicators.ichimokuSpanB}
-`;
-
-const superTrendSection =
-`📈 SuperTrend (10,3):
- - Value: ${indicators.superTrend}
-
-`;
-
-const tdiSection =
-`📊 Traders Dynamic Index (TDI):
- - RSI (13): ${indicators.tdi}
- - Upper Band: ${indicators.tdiUpperBand}
- - Lower Band: ${indicators.tdiLowerBand}
- - Signal Line (7): ${indicators.tdiSignalLine}
-
-`;
-
-const heikinAshiSection =
-`🕯 Heikin Ashi:
- - Close: ${indicators.heikinAshi}
-
-`;
-
-const choppinessSection =
-`🌀 Choppiness Index (14):
- - Value: ${indicators.choppinessIndex}
-
-`;
-
-const parabolicSarSection =
-`📈 Parabolic SAR:
- - Value: ${indicators.parabolicSAR}
-
-`;
-
-const trixSection =
-`📊 TRIX (9,1):
- - TRIX: ${indicators.trixValue}
- - Signal: ${indicators.trixSignal}
-
-`;
-
-const donchianSection =
-`📊 Donchian Channel (20):
- - Upper: ${indicators.donchianUpper}
- - Middle: ${indicators.donchianMiddle}
- - Lower: ${indicators.donchianLower}
-
-`;
-
-const fgiSection =
-`😨😊 Fear & Greed Index:
- - Value: ${indicators.fgiValue}
- - Classification: ${indicators.fgiClassification}
-
-`;
-
-  // Split extra notes into two parts
-  const extraNotes =
-`
-Calculate Values of all thes Indicatotors and Give me Out Put:
-📍 Final Signal Summary
-📉 What is the overall trend direction? (Bullish, Bearish, or Sideways, positive,Negative, Neutral)
-📊 Provide a detailed breakdown of indicator behaviors — RSI, MACD, EMA, Volume, etc.
-🌡 Present a momentum heatmap — Is momentum rising or fading?
-🔄 Is this a reversal or continuation setup? What confirms it?
-🧭 Is the price nearing any known liquidity pool zones?
-🛡 Highlight ideal zones for entry, take profit, and stop-loss
-🎯 Based on the setup, is TP1, TP2, or TP3 most likely to be hit?
-🔁 After taking profit at TP1 or TP2, suggest re-entry levels for the next move
-🐋 Detect whale movements vs. retail traders — Based on wallet activity or order book flow
-📅 Offer a 3-day or weekly forecast — What’s the expected asset behavior?
-`;
-
- return header + smaSection + emaSection + wmaSection + macdSection + vwmacdSection + 
-        rsiSection + rviSection + stochRsiSection + kdjSection + williamsSection + 
-        cciSection + rocSection + mtmSection + uoSection + adxSection + bbSection + 
-        fibBBSection + keltnerSection + atrSection + adsocsection + obvSection + 
-        aroonSection + hmaSection + mfiSection + vwapSection + ichimokuSection + 
-        superTrendSection + tdiSection + heikinAshiSection + choppinessSection + 
-        parabolicSarSection + trixSection + donchianSection + fgiSection + extraNotes;
+  return header + movingAverages + trendIndicators + momentumIndicators + 
+         volumeIndicators + volatilityIndicators + candlePatterns + 
+         sentiment + marketCondition + priceLevels + tradingForecast;
 }
 
 // --- Command Handler ---
@@ -1212,6 +1071,3 @@ app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
   bot.launch();
 });
-
-
-
