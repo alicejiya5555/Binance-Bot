@@ -2,7 +2,6 @@ import { Telegraf } from "telegraf";
 import axios from "axios";
 import ti from "technicalindicators";
 import express from "express";
-import SLR from "ml-regression-simple-linear";
 
 // --- Bot Init ---
 const BOT_TOKEN = "7726468556:AAFmVm5S25POmlRXwIRayz1hhbpLP6nDbQ4";
@@ -52,7 +51,7 @@ function calcVWAP(candles, period) {
     vwapArray.push(cumPV / cumVol);
   }
 
-  return vwapArray[vwapArray.length - 1]; // latest VWAP
+  return vwapArray[vwapArray.length - 1];
 }
 
 function getKeltnerChannel(candles, emaPeriod = 20, atrPeriod = 14, multiplier = 2) {
@@ -87,8 +86,6 @@ function getEMA(values, period) {
 
   return emaArray;
 }
-
-// --- New Indicator Functions ---
 
 // Volume-Weighted MACD (VW-MACD)
 function getVWMACD(candles, fastPeriod = 12, slowPeriod = 26, signalPeriod = 9) {
@@ -264,87 +261,6 @@ function getHMA(candles, period = 9) {
   const hma = ti.WMA.calculate({ period: sqrtPeriod, values: rawHMA });
   
   return hma.length ? hma[hma.length - 1] : 0;
-}
-
-// Machine Learning/Adaptive Filter (Simple Linear Regression)
-function getMLPrediction(candles, lookback = 14, forecastPeriods = 3) {
-  if (candles.length < lookback + forecastPeriods) return { slope: 0, prediction: 0, r2: 0 };
-  
-  const close = candles.map(c => c.close);
-  const recentCloses = close.slice(-lookback);
-  
-  // Prepare data for regression
-  const X = recentCloses.map((_, i) => i);
-  const Y = recentCloses;
-  
-  // Simple linear regression
-  const regression = new SLR(X, Y);
-  
-  // Predict next 'forecastPeriods' periods
-  const lastX = X[X.length - 1];
-  const prediction = regression.predict(lastX + forecastPeriods);
-  
-  // Calculate R-squared
-  const yMean = Y.reduce((a, b) => a + b, 0) / Y.length;
-  const ssTot = Y.reduce((a, b) => a + Math.pow(b - yMean, 2), 0);
-  const ssRes = Y.reduce((a, b, i) => a + Math.pow(b - regression.predict(X[i]), 2), 0);
-  const r2 = 1 - (ssRes / ssTot);
-  
-  return {
-    slope: regression.slope.toFixed(4),
-    prediction: prediction.toFixed(2),
-    r2: r2.toFixed(4)
-  };
-}
-
-// Order Book Analysis (mock implementation)
-async function getOrderBookAnalysis(symbol) {
-  try {
-    // Mock response
-    return {
-      bidVolume: (Math.random() * 1000).toFixed(2),
-      askVolume: (Math.random() * 1000).toFixed(2),
-      imbalance: (Math.random() * 100 - 50).toFixed(2) + '%'
-    };
-  } catch (error) {
-    return {
-      bidVolume: 'N/A',
-      askVolume: 'N/A',
-      imbalance: 'N/A'
-    };
-  }
-}
-
-// Sentiment Analysis (mock implementation)
-async function getSentimentAnalysis() {
-  try {
-    return {
-      score: (Math.random() * 100).toFixed(2),
-      sentiment: ['Very Bearish', 'Bearish', 'Neutral', 'Bullish', 'Very Bullish'][
-        Math.floor(Math.random() * 5)
-      ]
-    };
-  } catch (error) {
-    return {
-      score: 'N/A',
-      sentiment: 'N/A'
-    };
-  }
-}
-
-// Funding Rates (mock implementation)
-async function getFundingRate(symbol) {
-  try {
-    return {
-      rate: (Math.random() * 0.03 - 0.015).toFixed(6),
-      nextFunding: Date.now() + 8 * 60 * 60 * 1000
-    };
-  } catch (error) {
-    return {
-      rate: 'N/A',
-      nextFunding: 'N/A'
-    };
-  }
 }
 
 // --- Binance Data Fetch ---
@@ -803,17 +719,13 @@ async function calculateIndicators(candles) {
     values: close
   }));
 
-  // Calculate new indicators
+  // Calculate new indicators that can be derived from candle data
   const vwmacd = getVWMACD(candles);
   const fibBB = getFibonacciBollingerBands(candles);
   const rvi = getRVI(candles);
   const obv = getOBV(candles);
   const aroon = getAroon(candles);
   const hma = getHMA(candles);
-  const mlPrediction = getMLPrediction(candles);
-  const orderBook = await getOrderBookAnalysis('BTCUSDT');
-  const sentiment = await getSentimentAnalysis();
-  const fundingRate = await getFundingRate('BTCUSDT');
 
   const kdj = getKDJ(candles);
 
@@ -960,7 +872,7 @@ async function calculateIndicators(candles) {
     fgiValue: fearGreedIndex.value,
     fgiClassification: fearGreedIndex.classification,
     
-    // Newly added advanced indicators
+    // Newly added advanced indicators (calculated from candle data)
     vwmacdValue: formatNum(vwmacd.macd),
     vwmacdSignal: formatNum(vwmacd.signal),
     vwmacdHistogram: formatNum(vwmacd.histogram),
@@ -981,21 +893,7 @@ async function calculateIndicators(candles) {
     aroonUp: aroon.up,
     aroonDown: aroon.down,
     
-    hma: formatNum(hma),
-    
-    mlSlope: mlPrediction.slope,
-    mlPrediction: mlPrediction.prediction,
-    mlR2: mlPrediction.r2,
-    
-    orderBookBidVolume: orderBook.bidVolume,
-    orderBookAskVolume: orderBook.askVolume,
-    orderBookImbalance: orderBook.imbalance,
-    
-    sentimentScore: sentiment.score,
-    sentimentClassification: sentiment.sentiment,
-    
-    fundingRate: fundingRate.rate,
-    nextFundingTime: new Date(fundingRate.nextFunding).toLocaleString()
+    hma: formatNum(hma)
   };
 }
 
@@ -1196,32 +1094,6 @@ const hmaSection =
  - HMA: $${indicators.hma}
 `;
 
-const mlSection =
-`🤖 Machine Learning Prediction (3 periods):
- - Trend Slope: ${indicators.mlSlope}
- - R² Score: ${indicators.mlR2}
- - Prediction: $${indicators.mlPrediction}
-`;
-
-const orderBookSection =
-`📊 Order Book Analysis:
- - Bid Volume: ${indicators.orderBookBidVolume}
- - Ask Volume: ${indicators.orderBookAskVolume}
- - Imbalance: ${indicators.orderBookImbalance}
-`;
-
-const sentimentSection =
-`📰 Market Sentiment:
- - Score: ${indicators.sentimentScore}
- - Classification: ${indicators.sentimentClassification}
-`;
-
-const fundingSection =
-`💰 Funding Rate:
- - Current Rate: ${indicators.fundingRate}
- - Next Funding: ${indicators.nextFundingTime}
-`;
-
 const ichimokuSection = 
 `📊 Ichimoku Cloud:
  - Conversion Line (9): ${indicators.ichimokuConversion}
@@ -1318,10 +1190,9 @@ Calculate Values of all these Indicators and Give me Output:
         rsiSection + rviSection + stochRsiSection + kdjSection + williamsSection + 
         cciSection + rocSection + mtmSection + uoSection + adxSection + bbSection + 
         fibBBSection + keltnerSection + atrSection + adsocsection + obvSection + 
-        aroonSection + hmaSection + mlSection + orderBookSection + sentimentSection + 
-        fundingSection + mfiSection + vwapSection + ichimokuSection + superTrendSection + 
-        tdiSection + heikinAshiSection + choppinessSection + parabolicSarSection + 
-        trixSection + donchianSection + fgiSection + extraNotes;
+        aroonSection + hmaSection + mfiSection + vwapSection + ichimokuSection + 
+        superTrendSection + tdiSection + heikinAshiSection + choppinessSection + 
+        parabolicSarSection + trixSection + donchianSection + fgiSection + extraNotes;
 }
 
 // --- Command Handler ---
