@@ -2,7 +2,7 @@ import { Telegraf } from "telegraf";
 import axios from "axios";
 import ti from "technicalindicators";
 import express from "express";
-import ml from "ml-regression"; // For machine learning components
+import SLR from "ml-regression-simple-linear";
 
 // --- Bot Init ---
 const BOT_TOKEN = "7726468556:AAFmVm5S25POmlRXwIRayz1hhbpLP6nDbQ4";
@@ -73,7 +73,7 @@ function getKeltnerChannel(candles, emaPeriod = 20, atrPeriod = 14, multiplier =
   };
 }
 
-// 🔧 EMA Helper Function (required by ADOSC)
+// EMA Helper Function
 function getEMA(values, period) {
   const k = 2 / (period + 1);
   const emaArray = [];
@@ -267,8 +267,8 @@ function getHMA(candles, period = 9) {
 }
 
 // Machine Learning/Adaptive Filter (Simple Linear Regression)
-function getMLPrediction(candles, lookback = 14, forecast = 3) {
-  if (candles.length < lookback + forecast) return { slope: 0, prediction: 0 };
+function getMLPrediction(candles, lookback = 14, forecastPeriods = 3) {
+  if (candles.length < lookback + forecastPeriods) return { slope: 0, prediction: 0, r2: 0 };
   
   const close = candles.map(c => c.close);
   const recentCloses = close.slice(-lookback);
@@ -278,26 +278,29 @@ function getMLPrediction(candles, lookback = 14, forecast = 3) {
   const Y = recentCloses;
   
   // Simple linear regression
-  const regression = new ml.SLR(X, Y);
+  const regression = new SLR(X, Y);
   
-  // Predict next 'forecast' periods
+  // Predict next 'forecastPeriods' periods
   const lastX = X[X.length - 1];
-  const prediction = regression.predict(lastX + forecast);
+  const prediction = regression.predict(lastX + forecastPeriods);
+  
+  // Calculate R-squared
+  const yMean = Y.reduce((a, b) => a + b, 0) / Y.length;
+  const ssTot = Y.reduce((a, b) => a + Math.pow(b - yMean, 2), 0);
+  const ssRes = Y.reduce((a, b, i) => a + Math.pow(b - regression.predict(X[i]), 2), 0);
+  const r2 = 1 - (ssRes / ssTot);
   
   return {
-    slope: regression.coefficients[1].toFixed(4), // Slope of the trend line
+    slope: regression.slope.toFixed(4),
     prediction: prediction.toFixed(2),
-    r2: regression.score(X, Y).r2.toFixed(4) // R-squared value
+    r2: r2.toFixed(4)
   };
 }
 
 // Order Book Analysis (mock implementation)
 async function getOrderBookAnalysis(symbol) {
   try {
-    // In a real implementation, you would call the Binance API:
-    // const response = await axios.get(`https://api.binance.com/api/v3/depth?symbol=${symbol}&limit=20`);
-    
-    // Mock response for now
+    // Mock response
     return {
       bidVolume: (Math.random() * 1000).toFixed(2),
       askVolume: (Math.random() * 1000).toFixed(2),
@@ -315,9 +318,6 @@ async function getOrderBookAnalysis(symbol) {
 // Sentiment Analysis (mock implementation)
 async function getSentimentAnalysis() {
   try {
-    // In a real implementation, you would call a sentiment API
-    
-    // Mock response for now
     return {
       score: (Math.random() * 100).toFixed(2),
       sentiment: ['Very Bearish', 'Bearish', 'Neutral', 'Bullish', 'Very Bullish'][
@@ -335,13 +335,9 @@ async function getSentimentAnalysis() {
 // Funding Rates (mock implementation)
 async function getFundingRate(symbol) {
   try {
-    // In a real implementation, you would call the Binance API:
-    // const response = await axios.get(`https://fapi.binance.com/fapi/v1/premiumIndex?symbol=${symbol}`);
-    
-    // Mock response for now
     return {
-      rate: (Math.random() * 0.03 - 0.015).toFixed(6), // Random between -0.015 to +0.015
-      nextFunding: Date.now() + 8 * 60 * 60 * 1000 // Next funding in 8 hours
+      rate: (Math.random() * 0.03 - 0.015).toFixed(6),
+      nextFunding: Date.now() + 8 * 60 * 60 * 1000
     };
   } catch (error) {
     return {
@@ -371,7 +367,7 @@ async function getBinanceData(symbol, interval) {
   return { priceData, candles };
 }
 
-// 📊 KDJ (9,3,3) calculation
+// KDJ (9,3,3) calculation
 function getKDJ(candles) {
   const period = 9;
   const kPeriod = 3;
@@ -416,7 +412,7 @@ function getKDJ(candles) {
   };
 }
 
-// 📈 MOMENTUM (MTM) - 7, 14, 20
+// MOMENTUM (MTM) - 7, 14, 20
 function getMTM(candles, period) {
   if (candles.length <= period) return 'N/A';
 
@@ -426,7 +422,7 @@ function getMTM(candles, period) {
   return mtm.toFixed(2);
 }
 
-// 📉 ADOSC (Accumulation/Distribution Oscillator)
+// ADOSC (Accumulation/Distribution Oscillator)
 function getADOSC(candles, fastPeriod = 3, slowPeriod = 10) {
   if (candles.length < slowPeriod) return NaN;
 
@@ -452,7 +448,7 @@ function getADOSC(candles, fastPeriod = 3, slowPeriod = 10) {
   return adosc.toFixed(2);
 }
 
-// 🧭 ULTIMATE OSCILLATOR (7,14,28)
+// ULTIMATE OSCILLATOR (7,14,28)
 function getUltimateOscillator(candles) {
   if (candles.length < 28) return 'N/A';
 
@@ -493,7 +489,7 @@ function getUltimateOscillator(candles) {
   return uo.toFixed(2);
 }
 
-// 📊 SuperTrend Indicator (ATR Based)
+// SuperTrend Indicator (ATR Based)
 function getSuperTrend(candles, period = 10, multiplier = 3) {
   const close = candles.map(c => parseFloat(c.close));
   const high = candles.map(c => parseFloat(c.high));
@@ -533,7 +529,7 @@ function getSuperTrend(candles, period = 10, multiplier = 3) {
   };
 }
 
-// 📊 Traders Dynamic Index (TDI)
+// Traders Dynamic Index (TDI)
 function getTDI(candles) {
   const close = candles.map(c => c.close);
   const rsi = ti.RSI.calculate({ period: 13, values: close });
@@ -560,7 +556,7 @@ function getTDI(candles) {
   };
 }
 
-// 📊 Heikin Ashi Candles
+// Heikin Ashi Candles
 function getHeikinAshi(candles) {
   if (candles.length < 2) return { close: 'N/A' };
 
@@ -597,7 +593,7 @@ function getHeikinAshi(candles) {
   };
 }
 
-// 📊 Choppiness Index
+// Choppiness Index
 function getChoppinessIndex(candles) {
   const period = 14;
   if (candles.length < period + 1) return 'N/A';
@@ -627,7 +623,7 @@ function getChoppinessIndex(candles) {
   return Math.min(100, Math.max(0, ci)).toFixed(2);
 }
 
-// 📊 Parabolic SAR
+// Parabolic SAR
 function getParabolicSAR(candles, step = 0.02, max = 0.2) {
   const high = candles.map(c => c.high);
   const low = candles.map(c => c.low);
@@ -644,7 +640,7 @@ function getParabolicSAR(candles, step = 0.02, max = 0.2) {
   };
 }
 
-// 📊 TRIX Indicator (1, 9)
+// TRIX Indicator (1, 9)
 function getTRIX(candles, period = 9, signalPeriod = 1) {
   const close = candles.map(c => c.close);
   
@@ -670,7 +666,7 @@ function getTRIX(candles, period = 9, signalPeriod = 1) {
   };
 }
 
-// 📊 Donchian Channel (20)
+// Donchian Channel (20)
 function getDonchianChannel(candles, period = 20) {
   if (candles.length < period) return { upper: 'N/A', middle: 'N/A', lower: 'N/A' };
   
@@ -688,16 +684,11 @@ function getDonchianChannel(candles, period = 20) {
   };
 }
 
-// 📊 Fear & Greed Index (mock implementation - would need API call)
+// Fear & Greed Index (mock implementation)
 async function getFearGreedIndex() {
   try {
-    // In a real implementation, you would call an API like:
-    // const response = await axios.get('https://api.alternative.me/fng/');
-    // return response.data.data[0].value;
-    
-    // Mock response for now
     return {
-      value: Math.floor(Math.random() * 100) + 1, // Random between 1-100
+      value: Math.floor(Math.random() * 100) + 1,
       classification: ['Extreme Fear', 'Fear', 'Neutral', 'Greed', 'Extreme Greed'][
         Math.floor(Math.random() * 5)
       ]
@@ -710,7 +701,7 @@ async function getFearGreedIndex() {
   }
 }
 
-// 📉 ICHIMOKU (9, 26, 52)
+// ICHIMOKU (9, 26, 52)
 function getIchimoku(candles) {
   const high = candles.map(c => c.high);
   const low = candles.map(c => c.low);
@@ -820,9 +811,9 @@ async function calculateIndicators(candles) {
   const aroon = getAroon(candles);
   const hma = getHMA(candles);
   const mlPrediction = getMLPrediction(candles);
-  const orderBook = await getOrderBookAnalysis(candles.symbol || 'BTCUSDT');
+  const orderBook = await getOrderBookAnalysis('BTCUSDT');
   const sentiment = await getSentimentAnalysis();
-  const fundingRate = await getFundingRate(candles.symbol || 'BTCUSDT');
+  const fundingRate = await getFundingRate('BTCUSDT');
 
   const kdj = getKDJ(candles);
 
@@ -1206,10 +1197,10 @@ const hmaSection =
 `;
 
 const mlSection =
-`🤖 Machine Learning Prediction:
+`🤖 Machine Learning Prediction (3 periods):
  - Trend Slope: ${indicators.mlSlope}
  - R² Score: ${indicators.mlR2}
- - ${forecast} Period Forecast: $${indicators.mlPrediction}
+ - Prediction: $${indicators.mlPrediction}
 `;
 
 const orderBookSection =
@@ -1297,7 +1288,7 @@ const fgiSection =
   // Split extra notes into two parts
   const extraNotes =
 `
-Calculate Values of all thes Indicatotors and Give me Out Put:
+Calculate Values of all these Indicators and Give me Output:
 📍 Final Signal Summary
 📉 What is the overall trend direction? (Bullish, Bearish, or Sideways, positive,Negative, Neutral)
 📊 Provide a detailed breakdown of indicator behaviors — RSI, MACD, EMA, Volume, etc.
