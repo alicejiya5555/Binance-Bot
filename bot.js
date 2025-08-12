@@ -1040,7 +1040,6 @@ Calculate All time frames and Values of all thes Indicatotors and Give me Out Pu
 ⏳ Compare signals across multiple timeframes (1H, 4H, Daily) — Is there confluence?
 🐋 Detect whale movements vs. retail traders — Based on wallet activity or order book flow
 📅 Offer a 3-day or weekly forecast — What’s the expected asset behavior?
-📰 Is there any upcoming news or event that could impact the market or this asset?
 `;
 }
 
@@ -1072,6 +1071,7 @@ app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
   bot.launch();
 });
+
 
 
 
