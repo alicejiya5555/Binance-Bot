@@ -54,7 +54,7 @@ function calcVWAP(candles, period) {
   return vwapArray[vwapArray.length - 1];
 }
 
-function getKeltnerChannel(candles, emaPeriod = 20, atrPeriod = 14, multiplier = 2) {
+function getKeltnerChannel(candles, emaPeriod = 20, atrPeriod = 10, multiplier = 2) {
   const close = candles.map(c => c.close);
   const high = candles.map(c => c.high);
   const low = candles.map(c => c.low);
@@ -88,28 +88,23 @@ function getEMA(values, period) {
 }
 
 // Volume-Weighted MACD (VW-MACD)
-function getVWMACD(candles, fastPeriod = 12, slowPeriod = 26, signalPeriod = 9) {
+function getVWMACD(candles, fastPeriod = 6, slowPeriod = 13, signalPeriod = 5) {
   const close = candles.map(c => c.close);
   const volume = candles.map(c => c.volume);
   
-  // Calculate volume-weighted prices
   const vwPrices = close.map((price, i) => price * volume[i]);
   
-  // Calculate EMAs for VW-MACD
   const fastEMA = ti.EMA.calculate({ period: fastPeriod, values: vwPrices });
   const slowEMA = ti.EMA.calculate({ period: slowPeriod, values: vwPrices });
   
-  // Calculate MACD line
   const macdLine = [];
   for (let i = 0; i < slowEMA.length; i++) {
     const idx = fastEMA.length - slowEMA.length + i;
     macdLine.push(fastEMA[idx] - slowEMA[i]);
   }
   
-  // Calculate signal line
   const signalLine = ti.EMA.calculate({ period: signalPeriod, values: macdLine });
   
-  // Calculate histogram
   const histogram = [];
   for (let i = 0; i < signalLine.length; i++) {
     const idx = macdLine.length - signalLine.length + i;
@@ -152,7 +147,6 @@ function getRVI(candles, period = 14) {
   const high = candles.map(c => c.high);
   const low = candles.map(c => c.low);
   
-  // Calculate standard deviation for each period
   const stdevs = [];
   for (let i = period - 1; i < close.length; i++) {
     const slice = close.slice(i - period + 1, i + 1);
@@ -161,7 +155,6 @@ function getRVI(candles, period = 14) {
     stdevs.push(Math.sqrt(variance));
   }
   
-  // Calculate RVI similar to RSI but using stdev instead of price changes
   const upChanges = [];
   const downChanges = [];
   
@@ -198,7 +191,6 @@ function getOBV(candles) {
     } else if (current.close < previous.close) {
       obv -= current.volume;
     }
-    // No change means OBV remains the same
     
     obvValues.push(obv);
   }
@@ -207,7 +199,7 @@ function getOBV(candles) {
 }
 
 // Aroon Indicator
-function getAroon(candles, period = 25) {
+function getAroon(candles, period = 14) {
   if (candles.length < period) return { up: 0, down: 0 };
   
   const high = candles.map(c => c.high);
@@ -216,14 +208,12 @@ function getAroon(candles, period = 25) {
   let aroonUp = 0;
   let aroonDown = 0;
   
-  // Find highest high and lowest low in the period
   const recentHighs = high.slice(-period);
   const recentLows = low.slice(-period);
   
   const highestHigh = Math.max(...recentHighs);
   const lowestLow = Math.min(...recentLows);
   
-  // Find how many periods since highest high and lowest low
   const daysSinceHigh = recentHighs.reverse().findIndex(h => h === highestHigh);
   const daysSinceLow = recentLows.reverse().findIndex(l => l === lowestLow);
   
@@ -240,14 +230,11 @@ function getAroon(candles, period = 25) {
 function getHMA(candles, period = 9) {
   const close = candles.map(c => c.close);
   
-  // Calculate WMA for half period
   const halfPeriod = Math.floor(period / 2);
   const wmaHalf = ti.WMA.calculate({ period: halfPeriod, values: close });
   
-  // Calculate WMA for full period
   const wmaFull = ti.WMA.calculate({ period, values: close });
   
-  // Calculate raw HMA
   const rawHMA = [];
   for (let i = 0; i < wmaFull.length; i++) {
     const idx = wmaHalf.length - wmaFull.length + i;
@@ -256,7 +243,6 @@ function getHMA(candles, period = 9) {
     }
   }
   
-  // Calculate final HMA with WMA of sqrt(period)
   const sqrtPeriod = Math.floor(Math.sqrt(period));
   const hma = ti.WMA.calculate({ period: sqrtPeriod, values: rawHMA });
   
@@ -318,7 +304,7 @@ function getKDJ(candles) {
   }
 
   const latestK = K[K.length - 1] || 0;
-  const latestD = D[D.length - 1] || 0;
+  const latestD = D[K.length - 1] || 0;
   const J = 3 * latestK - 2 * latestD;
 
   return {
@@ -328,7 +314,7 @@ function getKDJ(candles) {
   };
 }
 
-// MOMENTUM (MTM) - 7, 14, 20
+// MOMENTUM (MTM) - 10, 20
 function getMTM(candles, period) {
   if (candles.length <= period) return 'N/A';
 
@@ -449,7 +435,7 @@ function getSuperTrend(candles, period = 10, multiplier = 3) {
 function getTDI(candles) {
   const close = candles.map(c => c.close);
   const rsi = ti.RSI.calculate({ period: 13, values: close });
-  if (rsi.length < 34) return { value: 'N/A' };
+  if (rsi.length < 34) return { value: 'N/A', upperBand: 'N/A', lowerBand: 'N/A', signalLine: 'N/A' };
 
   const bb = ti.BollingerBands.calculate({
     period: 34,
@@ -458,11 +444,11 @@ function getTDI(candles) {
   });
 
   const signalLine = ti.SMA.calculate({
-    period: 7,
+    period: 34,
     values: rsi
   });
 
-  if (!bb.length || !signalLine.length) return { value: 'N/A' };
+  if (!bb.length || !signalLine.length) return { value: 'N/A', upperBand: 'N/A', lowerBand: 'N/A', signalLine: 'N/A' };
 
   return {
     value: rsi[rsi.length - 1].toFixed(2),
@@ -510,8 +496,7 @@ function getHeikinAshi(candles) {
 }
 
 // Choppiness Index
-function getChoppinessIndex(candles) {
-  const period = 14;
+function getChoppinessIndex(candles, period = 14) {
   if (candles.length < period + 1) return 'N/A';
 
   const close = candles.map(c => c.close);
@@ -556,25 +541,20 @@ function getParabolicSAR(candles, step = 0.02, max = 0.2) {
   };
 }
 
-// TRIX Indicator (1, 9)
-function getTRIX(candles, period = 9, signalPeriod = 1) {
+// TRIX Indicator
+function getTRIX(candles, period = 10, signalPeriod = 7) {
   const close = candles.map(c => c.close);
   
-  // Calculate single EMA
   const ema1 = ti.EMA.calculate({ period, values: close });
-  // Calculate double EMA (EMA of EMA)
   const ema2 = ti.EMA.calculate({ period, values: ema1 });
-  // Calculate triple EMA (EMA of EMA of EMA)
   const ema3 = ti.EMA.calculate({ period, values: ema2 });
   
-  // Calculate TRIX as percentage change
   const trix = [];
   for (let i = 1; i < ema3.length; i++) {
     trix.push((ema3[i] - ema3[i-1]) / ema3[i-1] * 100);
   }
   
-  // Calculate signal line (SMA of TRIX)
-  const signal = ti.SMA.calculate({ period: signalPeriod, values: trix });
+  const signal = ti.EMA.calculate({ period: signalPeriod, values: trix });
   
   return {
     value: trix.length ? trix[trix.length - 1].toFixed(4) : 'N/A',
@@ -582,7 +562,7 @@ function getTRIX(candles, period = 9, signalPeriod = 1) {
   };
 }
 
-// Donchian Channel (20)
+// Donchian Channel
 function getDonchianChannel(candles, period = 20) {
   if (candles.length < period) return { upper: 'N/A', middle: 'N/A', lower: 'N/A' };
   
@@ -627,7 +607,7 @@ function getIchimoku(candles) {
   const period52 = 52;
 
   if (candles.length < period52) {
-    return { conversionLine: 'n/a', baseLine: 'n/a', leadingSpanA: 'n/a', leadingSpanB: 'n/a' };
+    return { conversionLine: 'N/A', baseLine: 'N/A', leadingSpanA: 'N/A', leadingSpanB: 'N/A' };
   }
 
   const recentHigh9 = Math.max(...high.slice(-period9));
@@ -660,14 +640,13 @@ async function calculateIndicators(candles) {
   const volume = candles.map(c => c.volume);
   const ichimoku = getIchimoku(candles);
   
-  // Helper to safely get last value or NaN if empty
   const lastValue = (arr) => arr.length ? arr.slice(-1)[0] : NaN;
 
   const macdRaw = ti.MACD.calculate({
     values: close,
-    fastPeriod: 3,
-    slowPeriod: 10,
-    signalPeriod: 16,
+    fastPeriod: 6,
+    slowPeriod: 13,
+    signalPeriod: 5,
     SimpleMAOscillator: false,
     SimpleMASignal: false
   });
@@ -712,74 +691,57 @@ async function calculateIndicators(candles) {
   const stochD = stochRsi?.d;
 
   const vwap1 = calcVWAP(candles, 1);
-  const vwap5 = calcVWAP(candles, 5);
+  const vwap3 = calcVWAP(candles, 3);
+  const vwap4 = calcVWAP(candles, 4);
 
-  const roc14 = lastValue(ti.ROC.calculate({
-    period: 14,
-    values: close
-  }));
+  const roc14 = lastValue(ti.ROC.calculate({ period: 14, values: close }));
+  const roc25 = lastValue(ti.ROC.calculate({ period: 25, values: close }));
 
-  // Calculate new indicators that can be derived from candle data
-  const vwmacd = getVWMACD(candles);
+  const vwmacd = getVWMACD(candles, 6, 13, 5);
   const fibBB = getFibonacciBollingerBands(candles);
-  const rvi = getRVI(candles);
+  const rvi14 = getRVI(candles, 14);
+  const rvi10 = getRVI(candles, 10);
+  const rviSignal = getRVI(candles, 4);
   const obv = getOBV(candles);
-  const aroon = getAroon(candles);
-  const hma = getHMA(candles);
+  const aroon = getAroon(candles, 14);
+  const hma9 = getHMA(candles, 9);
+  const hma14 = getHMA(candles, 14);
+  const hma21 = getHMA(candles, 21);
 
   const kdj = getKDJ(candles);
 
-  const cci7 = lastValue(ti.CCI.calculate({
-    period: 7,
-    high,
-    low,
-    close
-  }));
-
-  const cci10 = lastValue(ti.CCI.calculate({
-    period: 10,
-    high,
-    low,
-    close
-  }));
-
-  const cci20 = lastValue(ti.CCI.calculate({
-    period: 20,
-    high,
-    low,
-    close
-  }));
+  const cci14 = lastValue(ti.CCI.calculate({ period: 14, high, low, close }));
+  const cci20 = lastValue(ti.CCI.calculate({ period: 20, high, low, close }));
 
   const adosc = getADOSC(candles);
   
-  // New indicators calculations
-  const superTrend = getSuperTrend(candles);
+  const superTrend7 = getSuperTrend(candles, 7);
+  const superTrend10 = getSuperTrend(candles, 10);
+  const superTrend14 = getSuperTrend(candles, 14);
   const tdi = getTDI(candles);
   const heikinAshi = getHeikinAshi(candles);
-  const choppinessIndex = getChoppinessIndex(candles);
-  const parabolicSAR = getParabolicSAR(candles);
-  const trix = getTRIX(candles);
-  const donchianChannel = getDonchianChannel(candles);
+  const choppinessIndex14 = getChoppinessIndex(candles, 14);
+  const choppinessIndex21 = getChoppinessIndex(candles, 21);
+  const parabolicSAR = getParabolicSAR(candles, 0.02, 0.2);
+  const trix10 = getTRIX(candles, 10, 7);
+  const trix14 = getTRIX(candles, 14, 9);
+  const donchianChannel20 = getDonchianChannel(candles, 20);
+  const donchianChannel14 = getDonchianChannel(candles, 14);
   const fearGreedIndex = await getFearGreedIndex();
   
   return {
-    sma5: formatNum(lastValue(ti.SMA.calculate({ period: 5, values: close }))),
-    sma13: formatNum(lastValue(ti.SMA.calculate({ period: 13, values: close }))),
-    sma21: formatNum(lastValue(ti.SMA.calculate({ period: 21, values: close }))),
+    sma10: formatNum(lastValue(ti.SMA.calculate({ period: 10, values: close }))),
+    sma20: formatNum(lastValue(ti.SMA.calculate({ period: 20, values: close }))),
     sma50: formatNum(lastValue(ti.SMA.calculate({ period: 50, values: close }))),
-    sma100: formatNum(lastValue(ti.SMA.calculate({ period: 100, values: close }))),
     sma200: formatNum(lastValue(ti.SMA.calculate({ period: 200, values: close }))),
 
-    ema5: formatNum(lastValue(ti.EMA.calculate({ period: 5, values: close }))),
-    ema13: formatNum(lastValue(ti.EMA.calculate({ period: 13, values: close }))),
+    ema9: formatNum(lastValue(ti.EMA.calculate({ period: 9, values: close }))),
     ema21: formatNum(lastValue(ti.EMA.calculate({ period: 21, values: close }))),
     ema50: formatNum(lastValue(ti.EMA.calculate({ period: 50, values: close }))),
-    ema100: formatNum(lastValue(ti.EMA.calculate({ period: 100, values: close }))),
     ema200: formatNum(lastValue(ti.EMA.calculate({ period: 200, values: close }))),
 
-    wma5: formatNum(lastValue(ti.WMA.calculate({ period: 5, values: close }))),
-    wma13: formatNum(lastValue(ti.WMA.calculate({ period: 13, values: close }))),
-    wma21: formatNum(lastValue(ti.WMA.calculate({ period: 21, values: close }))),
+    wma8: formatNum(lastValue(ti.WMA.calculate({ period: 8, values: close }))),
+    wma20: formatNum(lastValue(ti.WMA.calculate({ period: 20, values: close }))),
     wma50: formatNum(lastValue(ti.WMA.calculate({ period: 50, values: close }))),
     wma100: formatNum(lastValue(ti.WMA.calculate({ period: 100, values: close }))),
 
@@ -791,33 +753,16 @@ async function calculateIndicators(candles) {
     bbMiddle: formatNum(bb.middle),
     bbLower: formatNum(bb.lower),
 
-    rsi5: formatNum(lastValue(ti.RSI.calculate({ period: 5, values: close }))),
+    rsi3: formatNum(lastValue(ti.RSI.calculate({ period: 3, values: close }))),
+    rsi10: formatNum(lastValue(ti.RSI.calculate({ period: 10, values: close }))),
     rsi14: formatNum(lastValue(ti.RSI.calculate({ period: 14, values: close }))),
-   
+
     atr14: formatNum(atr),
 
-    mfi14: formatNum(lastValue(ti.MFI.calculate({
-      high,
-      low,
-      close,
-      volume,
-      period: 14
-    }))),
+    mfi14: formatNum(lastValue(ti.MFI.calculate({ high, low, close, volume, period: 14 }))),
 
-    mfi20: formatNum(lastValue(ti.MFI.calculate({
-      high,
-      low,
-      close,
-      volume,
-      period: 20
-    }))),
-
-    williamsR14: formatNum(lastValue(ti.WilliamsR.calculate({
-      period: 14,
-      high: high,
-      low: low,
-      close: close
-    }))),
+    williamsR12: formatNum(lastValue(ti.WilliamsR.calculate({ period: 12, high, low, close }))),
+    williamsR25: formatNum(lastValue(ti.WilliamsR.calculate({ period: 25, high, low, close }))),
 
     adx14: formatNum(adx),
     pdi14: formatNum(pdi),
@@ -827,24 +772,24 @@ async function calculateIndicators(candles) {
     stochRsiD: formatNum(stochD),
 
     vwap1: formatNum(vwap1),
-    vwap5: formatNum(vwap5),
+    vwap3: formatNum(vwap3),
+    vwap4: formatNum(vwap4),
 
     kdjK: kdj.k,
     kdjD: kdj.d,
     kdjJ: kdj.j,
 
-    cci7: formatNum(cci7),
-    cci10: formatNum(cci10),
+    cci14: formatNum(cci14),
     cci20: formatNum(cci20),
 
     roc14: formatNum(roc14),
+    roc25: formatNum(roc25),
     uo: getUltimateOscillator(candles),
 
-    mtm7: getMTM(candles, 7),
-    mtm14: getMTM(candles, 14),
+    mtm10: getMTM(candles, 10),
     mtm20: getMTM(candles, 20),
 
-    keltner: getKeltnerChannel(candles),
+    keltner: getKeltnerChannel(candles, 20, 10, 2),
 
     adosc: isNaN(adosc) ? "N/A" : adosc,
 
@@ -853,26 +798,29 @@ async function calculateIndicators(candles) {
     ichimokuSpanA: ichimoku.leadingSpanA,
     ichimokuSpanB: ichimoku.leadingSpanB,
     
-    // New indicators (without trend)
-    superTrend: superTrend.value,
+    superTrend7: superTrend7.value,
+    superTrend10: superTrend10.value,
+    superTrend14: superTrend14.value,
     tdi: tdi.value,
     tdiUpperBand: tdi.upperBand,
     tdiLowerBand: tdi.lowerBand,
     tdiSignalLine: tdi.signalLine,
     heikinAshi: heikinAshi.close,
-    choppinessIndex: choppinessIndex,
+    choppinessIndex14: choppinessIndex14,
+    choppinessIndex21: choppinessIndex21,
     
-    // Newly added indicators
     parabolicSAR: parabolicSAR.value,
-    trixValue: trix.value,
-    trixSignal: trix.signal,
-    donchianUpper: donchianChannel.upper,
-    donchianMiddle: donchianChannel.middle,
-    donchianLower: donchianChannel.lower,
-    fgiValue: fearGreedIndex.value,
-    fgiClassification: fearGreedIndex.classification,
+    trix10Value: trix10.value,
+    trix10Signal: trix10.signal,
+    trix14Value: trix14.value,
+    trix14Signal: trix14.signal,
+    donchianUpper20: donchianChannel20.upper,
+    donchianMiddle20: donchianChannel20.middle,
+    donchianLower20: donchianChannel20.lower,
+    donchianUpper14: donchianChannel14.upper,
+    donchianMiddle14: donchianChannel14.middle,
+    donchianLower14: donchianChannel14.lower,
     
-    // Newly added advanced indicators (calculated from candle data)
     vwmacdValue: formatNum(vwmacd.macd),
     vwmacdSignal: formatNum(vwmacd.signal),
     vwmacdHistogram: formatNum(vwmacd.histogram),
@@ -887,159 +835,209 @@ async function calculateIndicators(candles) {
     fibBBNegative0618: formatNum(fibBB.fibNegative0618),
     fibBBNegative1000: formatNum(fibBB.fibNegative1000),
     
-    rvi: formatNum(rvi),
-    obv: formatNum(obv),
+    rvi14: formatNum(rvi14),
+    rvi10: formatNum(rvi10),
+    rviSignal: formatNum(rviSignal),
     
     aroonUp: aroon.up,
     aroonDown: aroon.down,
     
-    hma: formatNum(hma)
+    hma9: formatNum(hma9),
+    hma14: formatNum(hma14),
+    hma21: formatNum(hma21)
   };
 }
 
 // --- Output Message Generator ---
 function generateOutput(priceData, indicators, name = "Symbol", tfLabel = "Timeframe") {
-  const header = 
-`📜 Market Snapshot
+  return `
+📊 ${name} ${tfLabel} Analysis
+
+1️⃣ Market Overview
 💰 Price: $${formatNum(priceData.lastPrice)}
 📈 24h High: $${formatNum(priceData.highPrice)}
 📉 24h Low: $${formatNum(priceData.lowPrice)}
-🔁 24h Change: $${formatNum(priceData.priceChange)} (${priceData.priceChangePercent}%)
+🔁 Change: $${formatNum(priceData.priceChange)} (${priceData.priceChangePercent}%)
 🧮 Volume: ${formatNum(priceData.volume)}
 💵 Quote Volume: $${formatNum(priceData.quoteVolume)}
 🔓 Open Price: $${formatNum(priceData.openPrice)}
 ⏰ Close Time: ${new Date(priceData.closeTime).toLocaleString('en-UK')}
 
+2️⃣ Trend Direction:
+
+📊 Simple Moving Averages (SMA):
+ - SMA 10: ${indicators.sma10}
+ - SMA 20: ${indicators.sma20}
+ - SMA 50: ${indicators.sma50}
+ - SMA 200: ${indicators.sma200}
+
+📈 Exponential Moving Averages (EMA):
+ - EMA 9: ${indicators.ema9}
+ - EMA 21: ${indicators.ema21}
+ - EMA 50: ${indicators.ema50}
+ - EMA 200: ${indicators.ema200}
+
+⚖️ Weighted Moving Averages (WMA):
+ - WMA 8: ${indicators.wma8}
+ - WMA 20: ${indicators.wma20}
+ - WMA 50: ${indicators.wma50}
+ - WMA 100: ${indicators.wma100}
+
+📈 Hull Moving Average:
+  (HMA 9): ${indicators.hma9}
+  (HMA 14): ${indicators.hma14}
+  (HMA 21): ${indicators.hma21}
+
+📊 Ichimoku Cloud:
+ - Conversion Line (9): ${indicators.ichimokuConversion}
+ - Base Line (26): ${indicators.ichimokuBase}
+ - Leading Span A: ${indicators.ichimokuSpanA}
+ - Leading Span B: ${indicators.ichimokuSpanB}
+
+📈 SuperTrend:
+ - Value(7): ${indicators.superTrend7}
+ - Value(10): ${indicators.superTrend10}
+ - Value(14): ${indicators.superTrend14}
+
+📈 Parabolic SAR:
+ - Step AF Value(0.02): ${indicators.parabolicSAR}
+ - Max AF Value(0.20): ${indicators.parabolicSAR}
+
+3️⃣ Momentum Strength
+
+📉 MACD: 6,13,5
+ - MACD: ${indicators.macdValue}
+ - Signal: ${indicators.macdSignal}
+ - Histogram: ${indicators.macdHistogram}
+
+📊 Volume-Weighted MACD (VW-MACD):
+ - VW-MACD: ${indicators.vwmacdValue}
+ - VW-Signal: ${indicators.vwmacdSignal}
+ - VW-Histogram: ${indicators.vwmacdHistogram}
+
+⚡ Relative Strength Index (RSI):
+ - RSI (3): ${indicators.rsi3}
+ - RSI (10): ${indicators.rsi10}
+ - RSI (14): ${indicators.rsi14}
+
+📊 Relative Volatility Index (RVI):
+ - RVI (14): ${indicators.rvi14}
+ - RVI (10): ${indicators.rvi10}
+ - Signal Line(4): ${indicators.rviSignal}
+
+📉 Stochastic RSI (14,3,3)(0.8)level):
+ - %K: ${indicators.stochRsiK}
+ - %D: ${indicators.stochRsiD}
+
+📊 KDJ (9,3,3):
+ - K: ${indicators.kdjK}
+ - D: ${indicators.kdjD}
+ - J: ${indicators.kdjJ}
+
+📉 Williams %R Indicator:
+ - Williams %R (12): ${indicators.williamsR12}
+ - Williams %R (25): ${indicators.williamsR25}
+
+📘 Commodity Channel Index (CCI):
+ - CCI (14): ${indicators.cci14}
+ - CCI (20): ${indicators.cci20}
+
+📊 Rate of Change (ROC):
+ - ROC (14): ${indicators.roc14}
+ - ROC (25): ${indicators.roc25}
+
+📈 Momentum (MTM):
+ - MTM (10): ${indicators.mtm10}
+ - MTM (20): ${indicators.mtm20}
+
+🧭 Ultimate Oscillator:
+ - UO (7,14,28): ${indicators.uo}
+
+📊 ADX (Trend Strength):
+ - ADX (14): ${indicators.adx14}
+ - +DI (14): ${indicators.pdi14}
+ - -DI (14): ${indicators.mdi14}
+
+📊 Traders Dynamic Index (TDI):
+ - RSI (13): ${indicators.tdi}
+ - Volatility Bands(34): ${indicators.tdiUpperBand} / ${indicators.tdiLowerBand}
+ - Trade Signal Line (34): ${indicators.tdiSignalLine}
+
+4️⃣ Volume & Money Flow
+
+📊 On-Balance Volume (OBV):
+ - OBV: ${indicators.obv}
+
+📊 ADOSC: ${indicators.adosc}
+
+💧 Money Flow Index (MFI):
+ - MFI (14): ${indicators.mfi14}
+
+📊 Aroon Indicator (14):
+ - Aroon Up: ${indicators.aroonUp}
+ - Aroon Down: ${indicators.aroonDown}
+
+🔹 VWAP:
+ - VWAP(1): ${indicators.vwap1}
+ - VWAP(3): ${indicators.vwap3}
+ - VWAP(4): ${indicators.vwap4}
+
+5️⃣ Volatility & Range:
+
+🎯 Bollinger Bands (20, 2 StdDev):
+ - Upper Band: ${indicators.bbUpper}
+ - Middle Band: ${indicators.bbMiddle}
+ - Lower Band: ${indicators.bbLower}
+
+📊 Fibonacci Bollinger Bands:
+ - Upper (1.0): ${indicators.fibBB1000}
+ - Fib 0.618: ${indicators.fibBB0618}
+ - Fib 0.382: ${indicators.fibBB0382}
+ - Middle: ${indicators.fibBBMiddle}
+ - Fib -0.382: ${indicators.fibBBNegative0382}
+ - Fib -0.618: ${indicators.fibBBNegative0618}
+ - Lower (-1.0): ${indicators.fibBBNegative1000}
+
+📐 Keltner Channel (20 EMA, 2 ATR):
+ - Upper Band: ${indicators.keltner.upper}
+ - Middle EMA: ${indicators.keltner.middle}
+ - Lower Band: ${indicators.keltner.lower}
+
+📏 Average True Range (ATR):
+ - ATR (14): ${indicators.atr14}
+
+🕯 Heikin Ashi:
+ - Close: ${indicators.heikinAshi}
+
+🌀 Choppiness Index:
+ - Value (14): ${indicators.choppinessIndex14}
+ - Value (21): ${indicators.choppinessIndex21}
+ - Upper Band(61.8): N/A
+ - Lower Band(38.2): N/A
+
+📊 TRIX:
+ - TRIX(10): ${indicators.trix10Value}
+ - TRIX(14): ${indicators.trix14Value}
+ - Signal EMA(7): ${indicators.trix10Signal}
+ - Signal EMA(9): ${indicators.trix14Signal}
+
+📊 Donchian Channel (20)(14):
+ - Upper: ${indicators.donchianUpper20} / ${indicators.donchianUpper14}
+ - Middle: ${indicators.donchianMiddle20} / ${indicators.donchianMiddle14}
+ - Lower: ${indicators.donchianLower20} / ${indicators.donchianLower14}
+
+📍 Final Signal Summary
+📉 What is the overall trend direction? (Bullish, Bearish, or Sideways, positive, Negative, Neutral): N/A
+📊 Provide a detailed breakdown of indicator behaviors — RSI, MACD, EMA, Volume, etc.: N/A
+🌡 Present a momentum heatmap — Is momentum rising or fading?: N/A
+🔄 Is this a reversal or continuation setup? What confirms it?: N/A
+🧭 Is the price nearing any known liquidity pool zones?: N/A
+🛡 Highlight ideal zones for entry, take profit, and stop-loss: N/A
+🎯 Based on the setup, is TP1, TP2, or TP3 most likely to be hit?: N/A
+🔁 After taking profit at TP1 or TP2, suggest re-entry levels for the next move: N/A
+🐋 Detect whale movements vs. retail traders — Based on wallet activity or order book flow: N/A
+📅 Offer a 3-day or weekly forecast — What’s the expected asset behavior?: N/A
 `;
-
-  const movingAverages = 
-`📊 Moving Averages
-SMA: ${indicators.sma5} | ${indicators.sma13} | ${indicators.sma21} | ${indicators.sma50} | ${indicators.sma100} | ${indicators.sma200}
-EMA: ${indicators.ema5} | ${indicators.ema13} | ${indicators.ema21} | ${indicators.ema50} | ${indicators.ema100} | ${indicators.ema200}
-WMA: ${indicators.wma5} | ${indicators.wma13} | ${indicators.wma21} | ${indicators.wma50} | ${indicators.wma100}
-HMA: ${indicators.hma}
-
-`;
-
-  const trendIndicators = 
-`📉 Trend Indicators
-ADX (14): ${indicators.adx14} | +DI ${indicators.pdi14} / -DI ${indicators.mdi14}
-
-Ichimoku: ${indicators.ichimokuConversion} | ${indicators.ichimokuBase} | ${indicators.ichimokuSpanA} | ${indicators.ichimokuSpanB}
-
-SuperTrend (10,3): ${indicators.superTrend}
-
-Parabolic SAR: ${indicators.parabolicSAR}
-
-`;
-
-  const momentumIndicators = 
-`⚡ Momentum Indicators
-MACD (3,10,16): ${indicators.macdValue} | ${indicators.macdSignal} | ${indicators.macdHistogram}
-
-VW-MACD: ${indicators.vwmacdValue} | ${indicators.vwmacdSignal} | ${indicators.vwmacdHistogram}
-
-RSI (5 / 14): ${indicators.rsi5} / ${indicators.rsi14}
-
-Stochastic RSI (14,14,3,3): ${indicators.stochRsiK} | ${indicators.stochRsiD}
-
-KDJ (9,3,3): ${indicators.kdjK} | ${indicators.kdjD} | ${indicators.kdjJ}
-
-Williams %R (14): ${indicators.williamsR14}
-
-CCI (7 / 10 / 20): ${indicators.cci7} / ${indicators.cci10} / ${indicators.cci20}
-
-ROC (14): ${indicators.roc14}
-
-MTM (7 / 14 / 20): ${indicators.mtm7} / ${indicators.mtm14} / ${indicators.mtm20}
-
-UO (7,14,28): ${indicators.uo}
-
-TDI: ${indicators.tdi} | ${indicators.tdiUpperBand} | ${indicators.tdiLowerBand} | ${indicators.tdiSignalLine}
-
-`;
-
-  const volumeIndicators = 
-`📊 Volume Indicators
-OBV: ${indicators.obv}
-
-ADOSC: ${indicators.adosc}
-
-MFI (14 / 20): ${indicators.mfi14} / ${indicators.mfi20}
-
-VWAP (1 / 5): ${indicators.vwap1} / ${indicators.vwap5}
-
-`;
-
-  const volatilityIndicators = 
-`📏 Volatility Indicators
-ATR (14): ${indicators.atr14}
-
-Bollinger (20, 2): ${indicators.bbUpper} | ${indicators.bbMiddle} | ${indicators.bbLower}
-
-Fibonacci Bollinger: ${indicators.fibBB1000} | ${indicators.fibBB0618} | ${indicators.fibBB0382} | ${indicators.fibBBNegative0382} | ${indicators.fibBBNegative0618} | ${indicators.fibBBNegative1000}
-
-Keltner (20 EMA, 2 ATR): ${indicators.keltner.upper} | ${indicators.keltner.middle} | ${indicators.keltner.lower}
-
-Choppiness Index (14): ${indicators.choppinessIndex}
-
-`;
-
-  const candlePatterns = 
-`🕯 Candle Patterns
-Heikin Ashi Close: ${indicators.heikinAshi}
-
-Current Candle Type: (Bullish Engulfing / Bearish Engulfing / Doji / Hammer etc.)
-
-`;
-
-  const sentiment = 
-`😨😊 Sentiment
-Fear & Greed Index: ${indicators.fgiValue} | ${indicators.fgiClassification}
-
-`;
-
-  const marketCondition = 
-`🧭 Market Condition (AI Summary)
-Trend State: (Bullish / Bearish / Sideways)
-
-Volatility Level: (High / Medium / Low)
-
-Volume Strength: (Strong / Weak)
-
-`;
-
-  const priceLevels = 
-`📐 Price Levels
-Support Zones:
-
-Resistance Zones:
-
-Fibonacci Levels:
-
-Pivot Points:
-
-`;
-
-  const tradingForecast = 
-`🎯 AI Trading Forecast
-Bias: Long / Short / Neutral
-
-Entry Confidence: %
-
-Probability to Hit TP: %
-
-Risk Level: Low / Medium / High
-
-Suggested TP/SL: TP1 / TP2 / SL
-
-Expected Move: % Price Change Forecast
-
-`;
-
-  return header + movingAverages + trendIndicators + momentumIndicators + 
-         volumeIndicators + volatilityIndicators + candlePatterns + 
-         sentiment + marketCondition + priceLevels + tradingForecast;
 }
 
 // --- Command Handler ---
@@ -1052,7 +1050,6 @@ bot.on("text", async (ctx) => {
     const { priceData, candles } = await getBinanceData(symbol, interval);
     const indicators = await calculateIndicators(candles);
     
-    // Derive friendly names
     const name = symbol.replace("USDT", "");
     const tfLabel = interval.toUpperCase();
     
