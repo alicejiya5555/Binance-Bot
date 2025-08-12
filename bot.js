@@ -1026,19 +1026,14 @@ function generateOutput(priceData, indicators, name = "Symbol", tfLabel = "Timef
  - Middle: ${indicators.donchianMiddle20} / ${indicators.donchianMiddle14}
  - Lower: ${indicators.donchianLower20} / ${indicators.donchianLower14}
 
-Calculate Values of all thes Indicatotors and Give me Out Put:
+Calculate All time frames and Values of all thes Indicatotors and Give me Out Put:
 📍 Final Signal Summary
 📉 What is the overall trend direction? (Bullish, Bearish, or Sideways, positive,Negative, Neutral)
-📊 Provide a detailed breakdown of indicator behaviors — RSI, MACD, EMA, Volume, etc.
 🌡 Present a momentum heatmap — Is momentum rising or fading?
 📉 Analyze volume and OBV strength — Do they support the price movement?
 🧪 Compare current indicators with historically successful setups
 🔄 Is it any breakout? Or Should we wait for confirmation?
-🔄 Is this a reversal or continuation setup? What confirms it?
-📉 Is price forming higher highs/lows or breaking structure?
-🌀 Are there any repeating fractal patterns from past cycles?
 🐾 Over all Is this setup potentially a bull trap or bear trap?
-🐾 Are traders overly long/short? Any squeeze setups forming?
 🧮 Identify key Fibonacci levels — Is the current price near a retracement or extension zone?
 🧭 Is the price nearing any known liquidity pool zones?
 📢 Do you think the price is more likely to decline from here, or is there a greater chance it will rise?
@@ -1081,4 +1076,5 @@ app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
   bot.launch();
 });
+
 
