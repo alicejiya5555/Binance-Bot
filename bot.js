@@ -1030,21 +1030,17 @@ Calculate All time frames and Values of all thes Indicatotors and Give me Out Pu
 📍 Final Signal Summary
 📉 What is the overall trend direction? (Bullish, Bearish, or Sideways, positive,Negative, Neutral)
 🌡 Present a momentum heatmap — Is momentum rising or fading?
-📉 Analyze volume and OBV strength — Do they support the price movement?
 🧪 Compare current indicators with historically successful setups
 🔄 Is it any breakout? Or Should we wait for confirmation?
-🐾 Over all Is this setup potentially a bull trap or bear trap?
 🧮 Identify key Fibonacci levels — Is the current price near a retracement or extension zone?
 🧭 Is the price nearing any known liquidity pool zones?
 📢 Do you think the price is more likely to decline from here, or is there a greater chance it will rise?
 🛡 Highlight ideal zones for entry, take profit, and stop-loss
-🎯 Based on the setup, is TP1, TP2, or TP3 most likely to be hit?
-🔁 After taking profit at TP1 or TP2, suggest re-entry levels for the next move
+🎯 Based on the setup, is TP1, TP2, or TP3 most likely to be hit and after hit reEntry points?
 ⏳ Compare signals across multiple timeframes (1H, 4H, Daily) — Is there confluence?
 🐋 Detect whale movements vs. retail traders — Based on wallet activity or order book flow
 📅 Offer a 3-day or weekly forecast — What’s the expected asset behavior?
 📰 Is there any upcoming news or event that could impact the market or this asset?
-📢 Offer final trading advice — Mindset, Psychology, and Position Sizing
 `;
 }
 
@@ -1076,5 +1072,6 @@ app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
   bot.launch();
 });
+
 
 
