@@ -1026,17 +1026,30 @@ function generateOutput(priceData, indicators, name = "Symbol", tfLabel = "Timef
  - Middle: ${indicators.donchianMiddle20} / ${indicators.donchianMiddle14}
  - Lower: ${indicators.donchianLower20} / ${indicators.donchianLower14}
 
+Calculate Values of all thes Indicatotors and Give me Out Put:
 📍 Final Signal Summary
-📉 What is the overall trend direction? (Bullish, Bearish, or Sideways, positive, Negative, Neutral): N/A
-📊 Provide a detailed breakdown of indicator behaviors — RSI, MACD, EMA, Volume, etc.: N/A
-🌡 Present a momentum heatmap — Is momentum rising or fading?: N/A
-🔄 Is this a reversal or continuation setup? What confirms it?: N/A
-🧭 Is the price nearing any known liquidity pool zones?: N/A
-🛡 Highlight ideal zones for entry, take profit, and stop-loss: N/A
-🎯 Based on the setup, is TP1, TP2, or TP3 most likely to be hit?: N/A
-🔁 After taking profit at TP1 or TP2, suggest re-entry levels for the next move: N/A
-🐋 Detect whale movements vs. retail traders — Based on wallet activity or order book flow: N/A
-📅 Offer a 3-day or weekly forecast — What’s the expected asset behavior?: N/A
+📉 What is the overall trend direction? (Bullish, Bearish, or Sideways, positive,Negative, Neutral)
+📊 Provide a detailed breakdown of indicator behaviors — RSI, MACD, EMA, Volume, etc.
+🌡 Present a momentum heatmap — Is momentum rising or fading?
+📉 Analyze volume and OBV strength — Do they support the price movement?
+🧪 Compare current indicators with historically successful setups
+🔄 Is it any breakout? Or Should we wait for confirmation?
+🔄 Is this a reversal or continuation setup? What confirms it?
+📉 Is price forming higher highs/lows or breaking structure?
+🌀 Are there any repeating fractal patterns from past cycles?
+🐾 Over all Is this setup potentially a bull trap or bear trap?
+🐾 Are traders overly long/short? Any squeeze setups forming?
+🧮 Identify key Fibonacci levels — Is the current price near a retracement or extension zone?
+🧭 Is the price nearing any known liquidity pool zones?
+📢 Do you think the price is more likely to decline from here, or is there a greater chance it will rise?
+🛡 Highlight ideal zones for entry, take profit, and stop-loss
+🎯 Based on the setup, is TP1, TP2, or TP3 most likely to be hit?
+🔁 After taking profit at TP1 or TP2, suggest re-entry levels for the next move
+⏳ Compare signals across multiple timeframes (1H, 4H, Daily) — Is there confluence?
+🐋 Detect whale movements vs. retail traders — Based on wallet activity or order book flow
+📅 Offer a 3-day or weekly forecast — What’s the expected asset behavior?
+📰 Is there any upcoming news or event that could impact the market or this asset?
+📢 Offer final trading advice — Mindset, Psychology, and Position Sizing
 `;
 }
 
@@ -1068,3 +1081,4 @@ app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
   bot.launch();
 });
+
