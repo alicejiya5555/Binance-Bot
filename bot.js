@@ -187,9 +187,9 @@ function getOBV(candles) {
     const previous = candles[i - 1];
     
     if (current.close > previous.close) {
-      obv += current.volume;
+      obv += parseFloat(current.volume);
     } else if (current.close < previous.close) {
-      obv -= current.volume;
+      obv -= parseFloat(current.volume);
     }
     
     obvValues.push(obv);
@@ -702,7 +702,7 @@ async function calculateIndicators(candles) {
   const rvi14 = getRVI(candles, 14);
   const rvi10 = getRVI(candles, 10);
   const rviSignal = getRVI(candles, 4);
-  const obv = getOBV(candles);
+  const obv = formatNum(getOBV(candles));
   const aroon = getAroon(candles, 14);
   const hma9 = getHMA(candles, 9);
   const hma14 = getHMA(candles, 14);
@@ -1066,6 +1066,7 @@ app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
   bot.launch();
 });
+
 
 
 
