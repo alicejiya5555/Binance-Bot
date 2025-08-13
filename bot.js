@@ -184,24 +184,32 @@ function getOBV(candles) {
   // Ensure we have valid numeric values
   const close = candles.map(c => parseFloat(c.close));
   const volume = candles.map(c => parseFloat(c.volume));
+//OBV
+function getOBV(candles) {
+  try {
+    if (!Array.isArray(candles) || candles.length === 0) return 0;
+    
+    let obv = 0;
+    let prevClose = parseFloat(candles[0].close) || 0;
+    obv = parseFloat(candles[0].volume) || 0;
 
-  // Initialize OBV with first period's volume
-  let obv = volume[0] || 0;
+    for (let i = 1; i < candles.length; i++) {
+      const currentClose = parseFloat(candles[i].close) || prevClose;
+      const currentVolume = parseFloat(candles[i].volume) || 0;
 
-  for (let i = 1; i < candles.length; i++) {
-    const currentClose = close[i];
-    const prevClose = close[i - 1];
-    const currentVolume = volume[i];
-
-    if (currentClose > prevClose) {
-      obv += currentVolume;
-    } else if (currentClose < prevClose) {
-      obv -= currentVolume;
+      if (currentClose > prevClose) {
+        obv += currentVolume;
+      } else if (currentClose < prevClose) {
+        obv -= currentVolume;
+      }
+      prevClose = currentClose;
     }
-    // If equal, OBV remains unchanged
-  }
 
-  return obv;
+    return obv;
+  } catch (error) {
+    console.error('OBV calculation error:', error);
+    return 0;
+  }
 }
 // Aroon Indicator
 function getAroon(candles, period = 14) {
@@ -1071,6 +1079,7 @@ app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
   bot.launch();
 });
+
 
 
 
