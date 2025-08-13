@@ -177,7 +177,7 @@ function getRVI(candles, period = 14) {
   return rvi.toFixed(2);
 }
 
-/ On-Balance Volume (OBV)
+// On-Balance Volume (OBV)
 function getOBV(candles) {
   try {
     if (!Array.isArray(candles) || candles.length === 0) return 0;
@@ -204,6 +204,7 @@ function getOBV(candles) {
     return 0;
   }
 }
+
 // Aroon Indicator
 function getAroon(candles, period = 14) {
   if (candles.length < period) return { up: 0, down: 0 };
@@ -1072,14 +1073,3 @@ app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
   bot.launch();
 });
-
-
-
-
-
-
-
-
-
-
-
