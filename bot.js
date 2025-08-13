@@ -177,14 +177,7 @@ function getRVI(candles, period = 14) {
   return rvi.toFixed(2);
 }
 
-// On-Balance Volume (OBV) - Fixed Implementation
-function getOBV(candles) {
-  if (!candles || candles.length === 0) return 0;
-
-  // Ensure we have valid numeric values
-  const close = candles.map(c => parseFloat(c.close));
-  const volume = candles.map(c => parseFloat(c.volume));
-//OBV
+/ On-Balance Volume (OBV)
 function getOBV(candles) {
   try {
     if (!Array.isArray(candles) || candles.length === 0) return 0;
@@ -1079,6 +1072,7 @@ app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
   bot.launch();
 });
+
 
 
 
