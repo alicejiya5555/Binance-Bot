@@ -178,7 +178,6 @@ function getRVI(candles, period = 14) {
 }
 
 // On-Balance Volume (OBV)
-// On-Balance Volume (OBV)
 function getOBV(candles) {
   if (!candles || candles.length === 0) return 0;
 
@@ -1066,3 +1065,4 @@ app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
   bot.launch();
 });
+
