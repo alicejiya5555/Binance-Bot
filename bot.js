@@ -178,48 +178,24 @@ function getRVI(candles, period = 14) {
 }
 
 // On-Balance Volume (OBV)
+// On-Balance Volume (OBV)
 function getOBV(candles) {
-  try {
-    if (!Array.isArray(candles) || candles.length === 0) {
-      console.error('getOBV: Invalid or empty candles array');
-      return 0;
+  if (!candles || candles.length === 0) return 0;
+
+  let obv = 0;
+  const close = candles.map(c => c.close);
+  const volume = candles.map(c => c.volume);
+
+  for (let i = 1; i < close.length; i++) {
+    if (close[i] > close[i - 1]) {
+      obv += volume[i];
+    } else if (close[i] < close[i - 1]) {
+      obv -= volume[i];
     }
-
-    let obv = 0;
-    let prevClose = parseFloat(candles[0].close);
-    if (isNaN(prevClose)) {
-      console.error('getOBV: Invalid initial close price', candles[0].close);
-      prevClose = 0;
-    }
-    obv = parseFloat(candles[0].volume) || 0;
-
-    for (let i = 1; i < candles.length; i++) {
-      const currentClose = parseFloat(candles[i].close);
-      const currentVolume = parseFloat(candles[i].volume) || 0;
-
-      if (isNaN(currentClose)) {
-        console.error(`getOBV: Invalid close price at index ${i}`, candles[i].close);
-        continue; // Skip invalid candles
-      }
-
-      if (currentClose > prevClose) {
-        obv += currentVolume;
-      } else if (currentClose < prevClose) {
-        obv -= currentVolume;
-      }
-      prevClose = currentClose;
-    }
-
-    if (isNaN(obv)) {
-      console.error('getOBV: Calculated OBV is NaN', obv);
-      return 0;
-    }
-
-    return obv;
-  } catch (error) {
-    console.error('getOBV calculation error:', error);
-    return 0;
+    // If equal, OBV stays the same
   }
+
+  return obv; // raw value, format later if needed
 }
 
 // Aroon Indicator
