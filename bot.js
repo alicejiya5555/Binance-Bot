@@ -177,29 +177,32 @@ function getRVI(candles, period = 14) {
   return rvi.toFixed(2);
 }
 
-// On-Balance Volume (OBV)
+// On-Balance Volume (OBV) - Fixed Implementation
 function getOBV(candles) {
-  if (!candles || candles.length < 2) return 0;
+  if (!candles || candles.length === 0) return 0;
 
-  let obv = 0;
+  // Ensure we have valid numeric values
   const close = candles.map(c => parseFloat(c.close));
   const volume = candles.map(c => parseFloat(c.volume));
 
-  // Initialize with first period's volume
-  obv = volume[0];
+  // Initialize OBV with first period's volume
+  let obv = volume[0] || 0;
 
-  for (let i = 1; i < close.length; i++) {
-    if (close[i] > close[i-1]) {
-      obv += volume[i];
-    } else if (close[i] < close[i-1]) {
-      obv -= volume[i];
+  for (let i = 1; i < candles.length; i++) {
+    const currentClose = close[i];
+    const prevClose = close[i - 1];
+    const currentVolume = volume[i];
+
+    if (currentClose > prevClose) {
+      obv += currentVolume;
+    } else if (currentClose < prevClose) {
+      obv -= currentVolume;
     }
-    // No change if equal
+    // If equal, OBV remains unchanged
   }
 
   return obv;
 }
-
 // Aroon Indicator
 function getAroon(candles, period = 14) {
   if (candles.length < period) return { up: 0, down: 0 };
@@ -1068,6 +1071,7 @@ app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
   bot.launch();
 });
+
 
 
 
